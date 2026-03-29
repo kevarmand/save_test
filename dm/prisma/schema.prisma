@@ -1,0 +1,29 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Conversation {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userLowId  String    @db.Uuid
+  userHighId String    @db.Uuid
+  createdAt  DateTime  @default(now())
+  messages   Message[]
+
+  @@unique([userLowId, userHighId])
+}
+
+model Message {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  conversationId  String       @db.Uuid
+  authorId        String       @db.Uuid
+  content         String
+  clientMessageId String       @db.Uuid
+  createdAt       DateTime     @default(now())
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([conversationId, authorId, clientMessageId])
+}

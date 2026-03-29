@@ -1,0 +1,55 @@
+services:
+  db:
+    build:
+      context: ./db
+    container_name: dm-db
+    environment:
+      POSTGRES_DB: dm
+      POSTGRES_USER: dm
+      POSTGRES_PASSWORD: dm
+    ports:
+      - "5432:5432"
+    volumes:
+      - dm_postgres_data:/var/lib/postgresql
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres/certs/dm-db.crt
+      - -c
+      - ssl_key_file=/etc/postgres/certs/dm-db.key
+      - -c
+      - ssl_ca_file=/etc/postgres/certs/ca.crt
+      - -c
+      - hba_file=/etc/postgres/pg_hba.conf
+
+  dm:
+    build:
+      context: ./dm
+    container_name: dm-app
+    depends_on:
+      - db
+    ports:
+      - "7000:7000"
+    working_dir: /app
+    volumes:
+      - ./dm:/app
+      - dm_node_modules:/app/node_modules
+    environment:
+      SERVICE_NAME: dm
+      HOST: 0.0.0.0
+      PORT: 7000
+      SSL_CERT_PATH: /app/certs/dm.crt
+      SSL_KEY_PATH: /app/certs/dm.key
+      SSL_CA_PATH: /app/certs/ca.crt
+      USER_SERVICE_HOST: user
+      USER_SERVICE_PORT: 7000
+      SOCIAL_SERVICE_HOST: social
+      SOCIAL_SERVICE_PORT: 7000
+      DATABASE_URL: postgresql://dm:dm@dm-db:5432/dm?schema=public
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+
+volumes:
+  dm_postgres_data:
+  dm_node_modules:
