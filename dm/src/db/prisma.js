@@ -1,14 +1,12 @@
-const fs = require('fs');
 const {PrismaClient} = require('@prisma/client');
 const {PrismaPg} = require('@prisma/adapter-pg');
 const {Pool} = require('pg');
+const env = require('../config/env');
+const {buildDbTlsOptions} = require('../config/tls');
 
 const pool = new Pool({
-	connectionString: process.env.DATABASE_URL,
-	ssl: {
-		ca: fs.readFileSync(process.env.SSL_CA_PATH, 'utf8'),
-		rejectUnauthorized: true
-	}
+	connectionString: env.db.url,
+	ssl: buildDbTlsOptions()
 });
 
 const adapter = new PrismaPg(pool);

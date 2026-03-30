@@ -32,6 +32,14 @@ const env = {
 		keyPath: requireEnv('SSL_KEY_PATH'),
 		caPath: requireEnv('SSL_CA_PATH')
 	},
+	db: {
+		url: requireEnv('DATABASE_URL_RUNTIME'),
+		tls: {
+			caPath: requireEnv('DB_SSL_CA_PATH'),
+			certPath: requireEnv('DB_SSL_CERT_PATH'),
+			keyPath: requireEnv('DB_SSL_KEY_PATH')
+		}
+	},
 	clients: {
 		user: {
 			host: requireEnv('USER_SERVICE_HOST'),
@@ -45,4 +53,3 @@ const env = {
 };
 
 module.exports = env;
-

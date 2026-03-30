@@ -1,7 +1,7 @@
 services:
-  db:
+  dm-db:
     build:
-      context: ./db
+      context: ./dm-db
     container_name: dm-db
     environment:
       POSTGRES_DB: dm
@@ -11,6 +11,11 @@ services:
       - "5432:5432"
     volumes:
       - dm_postgres_data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dm -d dm"]
+      interval: 2s
+      timeout: 2s
+      retries: 15
     command:
       - postgres
       - -c
@@ -29,7 +34,7 @@ services:
       context: ./dm
     container_name: dm-app
     depends_on:
-      - db
+      - dm-db
     ports:
       - "7000:7000"
     working_dir: /app
@@ -40,16 +45,24 @@ services:
       SERVICE_NAME: dm
       HOST: 0.0.0.0
       PORT: 7000
+
       SSL_CERT_PATH: /app/certs/dm.crt
       SSL_KEY_PATH: /app/certs/dm.key
       SSL_CA_PATH: /app/certs/ca.crt
+
       USER_SERVICE_HOST: user
       USER_SERVICE_PORT: 7000
       SOCIAL_SERVICE_HOST: social
       SOCIAL_SERVICE_PORT: 7000
-      DATABASE_URL: postgresql://dm:dm@dm-db:5432/dm?schema=public
-    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
 
+      DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm?schema=public
+      DB_SSL_CA_PATH: /app/certs/ca.crt
+      DB_SSL_CERT_PATH: /app/certs/dm.crt
+      DB_SSL_KEY_PATH: /app/certs/dm.key
+
+      PRISMA_DATABASE_URL: postgresql://dm@dm-db:5432/dm?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/dm.p12&sslaccept=strict
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+    
 volumes:
   dm_postgres_data:
   dm_node_modules:

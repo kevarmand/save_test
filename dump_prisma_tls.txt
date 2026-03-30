@@ -1,0 +1,329 @@
+===== TREE: . =====
+.
+├── compose.yaml
+├── concat_tree.sh
+├── dm
+│   ├── certs
+│   │   ├── ca.crt
+│   │   ├── dm.crt
+│   │   ├── dm.key
+│   │   └── dm.p12
+│   ├── Dockerfile
+│   ├── package.json
+│   ├── package-lock.json
+│   ├── prisma
+│   │   └── schema.prisma
+│   ├── prisma.config.ts
+│   └── src
+│       ├── app.js
+│       ├── clients
+│       │   ├── https.agent.js
+│       │   ├── https.request.js
+│       │   ├── social.client.js
+│       │   └── user.client.js
+│       ├── config
+│       │   ├── env.js
+│       │   └── tls.js
+│       ├── controllers
+│       │   └── dm.controller.js
+│       ├── db
+│       │   └── prisma.js
+│       ├── errors
+│       │   ├── AppError.js
+│       │   ├── errorHandler.js
+│       │   └── notFound.js
+│       ├── repositories
+│       │   └── dm.repository.js
+│       ├── routes
+│       │   └── dm.routes.js
+│       ├── server.js
+│       ├── services
+│       │   └── dm.service.js
+│       └── validation
+│           └── dm.validation.js
+├── dm-db
+│   ├── certs
+│   │   ├── ca.crt
+│   │   ├── dm-db.crt
+│   │   └── dm-db.key
+│   ├── Dockerfile
+│   ├── init
+│   └── pg_hba.conf
+├── dump_prisma_tls.txt
+├── Makefile
+└── restore.sh
+
+16 directories, 36 files
+
+===== FILE: ./compose.yaml =====
+services:
+  dm-db:
+    build:
+      context: ./dm-db
+    container_name: dm-db
+    environment:
+      POSTGRES_DB: dm
+      POSTGRES_USER: dm
+      POSTGRES_PASSWORD: dm
+    ports:
+      - "5432:5432"
+    volumes:
+      - dm_postgres_data:/var/lib/postgresql
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres/certs/dm-db.crt
+      - -c
+      - ssl_key_file=/etc/postgres/certs/dm-db.key
+      - -c
+      - ssl_ca_file=/etc/postgres/certs/ca.crt
+      - -c
+      - hba_file=/etc/postgres/pg_hba.conf
+
+  dm:
+    build:
+      context: ./dm
+    container_name: dm-app
+    depends_on:
+      - dm-db
+    ports:
+      - "7000:7000"
+    working_dir: /app
+    volumes:
+      - ./dm:/app
+      - dm_node_modules:/app/node_modules
+    environment:
+      SERVICE_NAME: dm
+      HOST: 0.0.0.0
+      PORT: 7000
+
+      SSL_CERT_PATH: /app/certs/dm.crt
+      SSL_KEY_PATH: /app/certs/dm.key
+      SSL_CA_PATH: /app/certs/ca.crt
+
+      USER_SERVICE_HOST: user
+      USER_SERVICE_PORT: 7000
+      SOCIAL_SERVICE_HOST: social
+      SOCIAL_SERVICE_PORT: 7000
+
+      DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm?schema=public
+      DB_SSL_CA_PATH: /app/certs/ca.crt
+      DB_SSL_CERT_PATH: /app/certs/dm.crt
+      DB_SSL_KEY_PATH: /app/certs/dm.key
+
+      PRISMA_DATABASE_URL: postgresql://dm@dm-db:5432/dm?schema=public&sslmode=require&sslidentity=../certs/dm.p12&sslpassword=changeit
+
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+    
+volumes:
+  dm_postgres_data:
+  dm_node_modules:
+===== FILE: ./dm/package.json =====
+{
+  "name": "test_docker",
+  "version": "1.0.0",
+  "description": "Simple express server in docker",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "pg": "^8.20.0",
+    "prisma": "^7.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+
+===== FILE: ./dm/Dockerfile =====
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY src ./src
+COPY certs ./certs
+
+CMD ["npm", "run", "dev"]
+===== FILE: ./dm/prisma.config.ts =====
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+	schema: "prisma/schema.prisma",
+	datasource: {
+		url: env("PRISMA_DATABASE_URL")
+	}
+});
+===== FILE: ./dm/prisma/schema.prisma =====
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Conversation {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  userLowId  String    @db.Uuid
+  userHighId String    @db.Uuid
+  createdAt  DateTime  @default(now())
+  messages   Message[]
+
+  @@unique([userLowId, userHighId])
+}
+
+model Message {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  conversationId  String       @db.Uuid
+  authorId        String       @db.Uuid
+  content         String
+  clientMessageId String       @db.Uuid
+  createdAt       DateTime     @default(now())
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@unique([conversationId, authorId, clientMessageId])
+}
+===== FILE: ./dm/src/config/env.js =====
+const dotenv = require('dotenv');
+
+// Silently ignore missing .env file, since we require all env vars explicitly
+dotenv.config({ quiet: true });
+
+function requireEnv(name) {
+	const value = process.env[name];
+
+	if (!value)
+		throw new Error('Missing required environment variable: ' + name);
+	return value;
+}
+
+function requireNumberEnv(name) {
+	const value = Number(requireEnv(name));
+
+	if (Number.isNaN(value))
+		throw new Error('Environment variable must be a number: ' + name);
+	return value;
+}
+
+const env = {
+	service: {
+		name: requireEnv('SERVICE_NAME')
+	},
+	http: {
+		host: requireEnv('HOST'),
+		port: requireNumberEnv('PORT')
+	},
+	tls: {
+		certPath: requireEnv('SSL_CERT_PATH'),
+		keyPath: requireEnv('SSL_KEY_PATH'),
+		caPath: requireEnv('SSL_CA_PATH')
+	},
+	db: {
+		url: requireEnv('DATABASE_URL_RUNTIME'),
+		tls: {
+			caPath: requireEnv('DB_SSL_CA_PATH'),
+			certPath: requireEnv('DB_SSL_CERT_PATH'),
+			keyPath: requireEnv('DB_SSL_KEY_PATH')
+		}
+	},
+	clients: {
+		user: {
+			host: requireEnv('USER_SERVICE_HOST'),
+			port: requireNumberEnv('USER_SERVICE_PORT')
+		},
+		social: {
+			host: requireEnv('SOCIAL_SERVICE_HOST'),
+			port: requireNumberEnv('SOCIAL_SERVICE_PORT')
+		}
+	}
+};
+
+module.exports = env;
+===== FILE: ./dm/src/config/tls.js =====
+const fs = require('fs');
+const env = require('./env');
+
+function buildServerTlsOptions() {
+	return {
+		cert: fs.readFileSync(env.tls.certPath),
+		key: fs.readFileSync(env.tls.keyPath),
+		ca: fs.readFileSync(env.tls.caPath),
+		requestCert: true,
+		rejectUnauthorized: true
+	};
+}
+
+function buildClientTlsOptions() {
+	return {
+		cert: fs.readFileSync(env.tls.certPath),
+		key: fs.readFileSync(env.tls.keyPath),
+		ca: fs.readFileSync(env.tls.caPath),
+		rejectUnauthorized: true
+	};
+}
+
+function buildDbTlsOptions() {
+	return {
+		ca: fs.readFileSync(env.db.tls.caPath, 'utf8'),
+		cert: fs.readFileSync(env.db.tls.certPath, 'utf8'),
+		key: fs.readFileSync(env.db.tls.keyPath, 'utf8'),
+		rejectUnauthorized: true
+	};
+}
+
+module.exports = {
+	buildServerTlsOptions,
+	buildClientTlsOptions,
+	buildDbTlsOptions
+};
+===== FILE: ./dm/src/db/prisma.js =====
+const {PrismaClient} = require('@prisma/client');
+const {PrismaPg} = require('@prisma/adapter-pg');
+const {Pool} = require('pg');
+const env = require('../config/env');
+const {buildDbTlsOptions} = require('../config/tls');
+
+const pool = new Pool({
+	connectionString: env.db.url,
+	ssl: buildDbTlsOptions()
+});
+
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({adapter});
+
+module.exports = prisma;
+===== FILE: ./dm-db/Dockerfile =====
+FROM postgres:18-alpine
+
+USER root
+
+RUN mkdir -p /etc/postgres/certs
+
+COPY certs/ca.crt /etc/postgres/certs/ca.crt
+COPY certs/dm-db.crt /etc/postgres/certs/dm-db.crt
+COPY certs/dm-db.key /etc/postgres/certs/dm-db.key
+COPY pg_hba.conf /etc/postgres/pg_hba.conf
+
+RUN chown postgres:postgres /etc/postgres/certs/dm-db.key /etc/postgres/certs/dm-db.crt /etc/postgres/certs/ca.crt \
+	&& chmod 600 /etc/postgres/certs/dm-db.key \
+	&& chmod 644 /etc/postgres/certs/dm-db.crt /etc/postgres/certs/ca.crt /etc/postgres/pg_hba.conf
+
+USER postgres
+===== FILE: ./dm-db/pg_hba.conf =====
+local   all             all                                     trust
+hostssl all             all             all                     cert
+hostnossl all           all             all                     reject
