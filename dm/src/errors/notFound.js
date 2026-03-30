@@ -1,8 +1,8 @@
-function notFound(req, res) {
-	res.status(404).json({
-		code: 'NOT_FOUND',
-		message: 'Route not found'
-	});
+const AppError = require('./AppError');
+const ERROR_CODES = require('./errorCodes');
+
+function notFound(req, res, next) {
+	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
 }
 
 module.exports = notFound;

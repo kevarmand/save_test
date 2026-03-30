@@ -1,5 +1,4 @@
 const prisma = require('../db/prisma');
-const AppError = require('../errors/AppError');
 
 function orderUsers(senderId, recipientId) {
 	if (senderId < recipientId) {
@@ -29,66 +28,59 @@ function mapMessage(message) {
 }
 
 async function createMessage(data) {
-	let users;
+	const users = orderUsers(data.senderId, data.recipientId);
 
-	users = orderUsers(data.senderId, data.recipientId);
-	try {
-		return await prisma.$transaction(async (tx) => {
-			let conversation;
-			let message;
+	return prisma.$transaction(async (tx) => {
+		let conversation;
+		let message;
 
-			conversation = await tx.conversation.upsert({
-				where: {
-					userLowId_userHighId: {
-						userLowId: users.userLowId,
-						userHighId: users.userHighId
-					}
-				},
-				update: {},
-				create: {
+		conversation = await tx.conversation.upsert({
+			where: {
+				userLowId_userHighId: {
 					userLowId: users.userLowId,
 					userHighId: users.userHighId
 				}
+			},
+			update: {},
+			create: {
+				userLowId: users.userLowId,
+				userHighId: users.userHighId
+			}
+		});
+		try {
+			message = await tx.message.create({
+				data: {
+					conversationId: conversation.id,
+					authorId: data.senderId,
+					content: data.content,
+					clientMessageId: data.clientMessageId
+				},
+				include: {
+					conversation: true
+				}
 			});
-			try {
-				message = await tx.message.create({
-					data: {
-						conversationId: conversation.id,
-						authorId: data.senderId,
-						content: data.content,
-						clientMessageId: data.clientMessageId
+			return mapMessage(message);
+		}
+		catch (err) {
+			if (err.code === 'P2002') {
+				message = await tx.message.findUnique({
+					where: {
+						conversationId_authorId_clientMessageId: {
+							conversationId: conversation.id,
+							authorId: data.senderId,
+							clientMessageId: data.clientMessageId
+						}
 					},
 					include: {
 						conversation: true
 					}
 				});
-				return mapMessage(message);
+				if (message)
+					return mapMessage(message);
 			}
-			catch (err) {
-				if (err.code === 'P2002') {
-					message = await tx.message.findUnique({
-						where: {
-							conversationId_authorId_clientMessageId: {
-								conversationId: conversation.id,
-								authorId: data.senderId,
-								clientMessageId: data.clientMessageId
-							}
-						},
-						include: {
-							conversation: true
-						}
-					});
-					if (message)
-						return mapMessage(message);
-				}
-				throw err;
-			}
-		});
-	}
-	catch (err) {
-		console.error('createMessage original error:', err);
-		throw err;
-	}
+			throw err;
+		}
+	});
 }
 
 module.exports = {
