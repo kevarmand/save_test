@@ -57,7 +57,7 @@ function buildLogContext(req, err, statusCode, code) {
 function logError(req, err, statusCode, code) {
 	const context = buildLogContext(req, err, statusCode, code);
 
-	if (statusCode >= 500) {
+	if (statusCode >= 500 || code === ERROR_CODES.UNAUTHORIZED_CALLER) {
 		console.error('[dm] request failed', context);
 		console.error(err.stack || err);
 		if (err.cause) {

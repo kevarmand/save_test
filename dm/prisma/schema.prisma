@@ -7,23 +7,35 @@ generator client {
 }
 
 model Conversation {
-  id         String    @id @default(uuid(7)) @db.Uuid
-  userLowId  String    @db.Uuid
-  userHighId String    @db.Uuid
-  createdAt  DateTime  @default(now())
-  messages   Message[]
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  userLowId             String    @db.Uuid
+  userHighId            String    @db.Uuid
+  createdAt             DateTime  @default(now())
+
+  lastReadLowMessageId  String?   @db.Uuid
+  lastReadHighMessageId String?   @db.Uuid
+
+  messages              Message[] @relation("ConversationMessages")
+  lastReadLowMessage    Message?  @relation("ConversationLastReadLowMessage", fields: [lastReadLowMessageId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  lastReadHighMessage   Message?  @relation("ConversationLastReadHighMessage", fields: [lastReadHighMessageId], references: [id], onDelete: SetNull, onUpdate: Cascade)
 
   @@unique([userLowId, userHighId])
+  @@index([userLowId])
+  @@index([userHighId])
 }
 
 model Message {
-  id              String       @id @default(uuid(7)) @db.Uuid
-  conversationId  String       @db.Uuid
-  authorId        String       @db.Uuid
-  content         String
-  clientMessageId String       @db.Uuid
-  createdAt       DateTime     @default(now())
-  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  id                         String         @id @default(uuid(7)) @db.Uuid
+  conversationId             String         @db.Uuid
+  authorId                   String         @db.Uuid
+  content                    String
+  clientMessageId            String         @db.Uuid
+  createdAt                  DateTime       @default(now())
+
+  conversation               Conversation   @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  conversationsAsLastReadLow Conversation[] @relation("ConversationLastReadLowMessage")
+  conversationsAsLastReadHigh Conversation[] @relation("ConversationLastReadHighMessage")
 
   @@unique([conversationId, authorId, clientMessageId])
+  @@index([conversationId, id])
 }

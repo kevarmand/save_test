@@ -61,11 +61,13 @@ services:
       DB_SSL_CERT_PATH: /app/certs/dm.crt
       DB_SSL_KEY_PATH: /app/certs/dm.key
 
+      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+
       PRISMA_DATABASE_URL: postgresql://dm@dm-db:5432/dm?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/dm.p12&sslaccept=strict
 
     networks:
       - dm_net
-    command: sh -c "npm install && npx prisma generate && npm run dev"
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
 
 volumes:
   dm_postgres_data:

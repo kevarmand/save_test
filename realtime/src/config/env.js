@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 
-dotenv.config({ quiet: true });
+dotenv.config({quiet: true});
 
 function requireEnv(name) {
 	const value = process.env[name];
@@ -34,23 +34,18 @@ const env = {
 		keyPath: requireEnv('SSL_KEY_PATH'),
 		caPath: requireEnv('SSL_CA_PATH')
 	},
-	db: {
-		url: requireEnv('DATABASE_URL_RUNTIME'),
-		tls: {
-			caPath: requireEnv('DB_SSL_CA_PATH'),
-			certPath: requireEnv('DB_SSL_CERT_PATH'),
-			keyPath: requireEnv('DB_SSL_KEY_PATH')
+	clients: {
+		dm: {
+			host: requireEnv('DM_SERVICE_HOST'),
+			port: requireNumberEnv('DM_SERVICE_PORT')
 		}
 	},
-	clients: {
-		user: {
-			host: requireEnv('USER_SERVICE_HOST'),
-			port: requireNumberEnv('USER_SERVICE_PORT')
-		},
-		social: {
-			host: requireEnv('SOCIAL_SERVICE_HOST'),
-			port: requireNumberEnv('SOCIAL_SERVICE_PORT')
-		}
+	ws: {
+		path: requireEnv('WS_PATH'),
+		tokenSecret: requireEnv('WS_TOKEN_SECRET'),
+		authTimeoutMs: requireNumberEnv('WS_AUTH_TIMEOUT_MS'),
+		heartbeatIntervalMs: requireNumberEnv('WS_HEARTBEAT_INTERVAL_MS'),
+		maxPayloadBytes: requireNumberEnv('WS_MAX_PAYLOAD_BYTES')
 	}
 };
 
