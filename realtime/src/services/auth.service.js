@@ -12,10 +12,7 @@ function normalizeUuid(value) {
 }
 
 function unauthorized() {
-	return new AppError(
-		ERROR_CODES.UNAUTHORIZED,
-		'invalid auth token'
-	);
+	return new AppError(ERROR_CODES.UNAUTHORIZED, 'invalid auth token');
 }
 
 function decodeBase64UrlToBuffer(value) {
@@ -80,7 +77,7 @@ function validatePayload(payload) {
 	};
 }
 
-function verifyWsToken(token) {
+function verifyAuthToken(token) {
 	let parts;
 	let header;
 	let payload;
@@ -100,5 +97,5 @@ function verifyWsToken(token) {
 }
 
 module.exports = {
-	verifyWsToken
+	verifyAuthToken
 };

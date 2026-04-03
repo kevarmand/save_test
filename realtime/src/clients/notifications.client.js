@@ -13,11 +13,11 @@ function parseResponseBody(response) {
 	catch (err) {
 		throw new AppError(
 			ERROR_CODES.INTERNAL_ERROR,
-			'dm service returned invalid JSON',
+			'notifications service returned invalid JSON',
 			{
 				cause: err,
 				details: {
-					service: 'dm'
+					service: 'notifications'
 				}
 			}
 		);
@@ -31,8 +31,8 @@ async function performRequest(options) {
 	try {
 		response = await request({
 			protocol: 'https:',
-			hostname: env.clients.dm.host,
-			port: env.clients.dm.port,
+			hostname: env.clients.notifications.host,
+			port: env.clients.notifications.port,
 			path: options.path,
 			method: options.method,
 			agent: agent,
@@ -43,11 +43,11 @@ async function performRequest(options) {
 	catch (err) {
 		throw new AppError(
 			ERROR_CODES.INTERNAL_ERROR,
-			'dm service error',
+			'notifications service error',
 			{
 				cause: err,
 				details: {
-					service: 'dm',
+					service: 'notifications',
 					operation: options.operation
 				}
 			}
@@ -58,10 +58,10 @@ async function performRequest(options) {
 		return payload;
 	throw new AppError(
 		payload && payload.code ? payload.code : ERROR_CODES.INTERNAL_ERROR,
-		payload && payload.message ? payload.message : 'dm service error',
+		payload && payload.message ? payload.message : 'notifications service error',
 		{
 			details: {
-				service: 'dm',
+				service: 'notifications',
 				operation: options.operation,
 				upstreamStatusCode: response.statusCode
 			}
@@ -79,7 +79,7 @@ function buildHeaders(userId, hasBody) {
 	return headers;
 }
 
-function buildConversationQuery(command) {
+function buildListQuery(command) {
 	const params = new URLSearchParams();
 
 	if (command.limit !== undefined)
@@ -91,65 +91,28 @@ function buildConversationQuery(command) {
 	return '?' + params.toString();
 }
 
-function buildMessagesQuery(command) {
-	const params = new URLSearchParams();
-
-	if (command.limit !== undefined)
-		params.set('limit', String(command.limit));
-	if (command.beforeMessageId !== undefined)
-		params.set('beforeMessageId', command.beforeMessageId);
-	if (params.size === 0)
-		return '';
-	return '?' + params.toString();
-}
-
-async function sendMessage(command) {
+async function listNotifications(command) {
 	return performRequest({
-		operation: 'sendMessage',
-		method: 'POST',
-		path: '/dm/users/' + command.otherUserId + '/messages',
-		headers: buildHeaders(command.senderId, true),
-		body: JSON.stringify({
-			content: command.content,
-			clientMsgId: command.clientMessageId
-		})
-	});
-}
-
-async function listConversations(command) {
-	return performRequest({
-		operation: 'listConversations',
+		operation: 'listNotifications',
 		method: 'GET',
-		path: '/dm/conversations' + buildConversationQuery(command),
+		path: '/notifications' + buildListQuery(command),
 		headers: buildHeaders(command.userId, false)
 	});
 }
 
-async function listMessages(command) {
+async function markNotificationsRead(command) {
 	return performRequest({
-		operation: 'listMessages',
-		method: 'GET',
-		path: '/dm/users/' + command.otherUserId + '/messages'
-			+ buildMessagesQuery(command),
-		headers: buildHeaders(command.userId, false)
-	});
-}
-
-async function markConversationRead(command) {
-	return performRequest({
-		operation: 'markConversationRead',
+		operation: 'markNotificationsRead',
 		method: 'POST',
-		path: '/dm/users/' + command.otherUserId + '/read',
+		path: '/notifications/read',
 		headers: buildHeaders(command.userId, true),
 		body: JSON.stringify({
-			lastReadMessageId: command.lastReadMessageId
+			notificationIds: command.notificationIds
 		})
 	});
 }
 
 module.exports = {
-	sendMessage,
-	listConversations,
-	listMessages,
-	markConversationRead
+	listNotifications,
+	markNotificationsRead
 };

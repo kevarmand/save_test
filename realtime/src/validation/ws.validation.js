@@ -11,10 +11,7 @@ function normalizeUuid(value) {
 
 function validateUuidField(value, fieldName, requiredMessage) {
 	if (typeof value !== 'string' || value.trim() === '') {
-		throw new AppError(
-			ERROR_CODES.INVALID_ARGUMENT,
-			requiredMessage
-		);
+		throw new AppError(ERROR_CODES.INVALID_ARGUMENT, requiredMessage);
 	}
 	value = normalizeUuid(value);
 	if (!isUuidV7(value)) {
@@ -46,6 +43,52 @@ function validateContent(value) {
 		);
 	}
 	return value;
+}
+
+function validateOptionalLimit(value) {
+	if (value === undefined)
+		return undefined;
+	if (!Number.isInteger(value) || value <= 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'limit must be a positive integer'
+		);
+	}
+	return value;
+}
+
+function validateOptionalCursor(value) {
+	if (value === undefined)
+		return undefined;
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'cursor must be a non-empty string'
+		);
+	}
+	return value;
+}
+
+function validateOptionalMessageId(value, fieldName) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(value, fieldName, fieldName + ' is required');
+}
+
+function validateUuidArray(value, fieldName) {
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a non-empty array'
+		);
+	}
+	return value.map((item) => {
+		return validateUuidField(
+			item,
+			fieldName,
+			fieldName + ' must contain valid UUIDv7 values'
+		);
+	});
 }
 
 function validateIncomingFrame(rawData) {
@@ -87,7 +130,7 @@ function validateAuthFrame(frame) {
 	};
 }
 
-function validateChatSendFrame(frame) {
+function validateDmSendFrame(frame) {
 	return {
 		requestId: validateOptionalRequestId(frame.requestId),
 		otherUserId: validateUuidField(
@@ -104,8 +147,82 @@ function validateChatSendFrame(frame) {
 	};
 }
 
+function validateDmConversationsListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		limit: validateOptionalLimit(frame.limit),
+		cursor: validateOptionalCursor(frame.cursor)
+	};
+}
+
+function validateDmMessagesListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		limit: validateOptionalLimit(frame.limit),
+		beforeMessageId: validateOptionalMessageId(
+			frame.beforeMessageId,
+			'beforeMessageId'
+		)
+	};
+}
+
+function validateDmReadFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		lastReadMessageId: validateUuidField(
+			frame.lastReadMessageId,
+			'lastReadMessageId',
+			'lastReadMessageId is required'
+		)
+	};
+}
+
+function validateNotificationsListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		limit: validateOptionalLimit(frame.limit),
+		cursor: validateOptionalCursor(frame.cursor)
+	};
+}
+
+function validateNotificationsReadFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		notificationIds: validateUuidArray(
+			frame.notificationIds,
+			'notificationIds'
+		)
+	};
+}
+
+function validateAuthenticatedFrame(frame) {
+	if (frame.type === 'dm.send')
+		return validateDmSendFrame(frame);
+	if (frame.type === 'dm.conversations.list')
+		return validateDmConversationsListFrame(frame);
+	if (frame.type === 'dm.messages.list')
+		return validateDmMessagesListFrame(frame);
+	if (frame.type === 'dm.read')
+		return validateDmReadFrame(frame);
+	if (frame.type === 'notifications.list')
+		return validateNotificationsListFrame(frame);
+	if (frame.type === 'notifications.read')
+		return validateNotificationsReadFrame(frame);
+	throw new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type');
+}
+
 module.exports = {
 	validateIncomingFrame,
 	validateAuthFrame,
-	validateChatSendFrame
+	validateAuthenticatedFrame
 };

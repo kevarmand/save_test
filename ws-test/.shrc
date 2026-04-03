@@ -1,0 +1,17 @@
+ws() {
+	wscat --ca "$WS_CA_PATH" -c "$WS_URL"
+}
+
+auth() {
+	node /work/gen-auth-frame.js "$@"
+}
+
+echo
+echo "ws-test ready"
+echo "  ws           -> connect wscat"
+echo "  auth         -> print auth frame"
+echo "  auth <uuid>  -> print auth frame for another user"
+echo
+echo "Auth frame to paste now:"
+auth
+echo

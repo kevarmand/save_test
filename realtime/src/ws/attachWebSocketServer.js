@@ -2,7 +2,7 @@ const {WebSocketServer} = require('ws');
 const env = require('../config/env');
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
-const sessionService = require('../services/session.service');
+const registryService = require('../services/registry.service');
 const {handleSocketMessage} = require('./message.handler');
 const {sendError} = require('./send');
 
@@ -20,7 +20,7 @@ function rejectUpgrade(socket, statusCode, reason) {
 }
 
 function installSocketLifecycle(ws) {
-	sessionService.addSocket(ws);
+	registryService.addSocket(ws);
 	ws.isAlive = true;
 	ws.authenticated = false;
 	ws.userId = undefined;
@@ -44,7 +44,7 @@ function installSocketLifecycle(ws) {
 		});
 	});
 	ws.on('close', () => {
-		sessionService.removeSocket(ws);
+		registryService.removeSocket(ws);
 	});
 	ws.on('error', () => {
 	});
@@ -56,7 +56,7 @@ function installSocketLifecycle(ws) {
 
 function startHeartbeat() {
 	setInterval(() => {
-		sessionService.forEachSocket((ws) => {
+		registryService.forEachSocket((ws) => {
 			if (ws.isAlive === false) {
 				ws.terminate();
 				return;

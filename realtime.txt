@@ -1,0 +1,935 @@
+===== TREE: realtime =====
+realtime
+├── certs
+├── Dockerfile
+├── package.json
+├── package-lock.json
+└── src
+    ├── app.js
+    ├── clients
+    │   ├── dm.client.js
+    │   ├── https.agent.js
+    │   └── https.request.js
+    ├── config
+    │   ├── env.js
+    │   └── tls.js
+    ├── errors
+    │   ├── AppError.js
+    │   ├── errorCode.js
+    │   ├── errorHandler.js
+    │   └── notFound.js
+    ├── server.js
+    ├── services
+    │   ├── chat.service.js
+    │   ├── session.service.js
+    │   └── wsToken.service.js
+    ├── validation
+    │   └── ws.validation.js
+    └── ws
+        ├── attachWebSocketServer.js
+        ├── message.handler.js
+        └── send.js
+
+8 directories, 21 files
+
+===== FILE: realtime/Dockerfile =====
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY src ./src
+COPY certs ./certs
+
+CMD ["npm", "run", "dev"]
+===== FILE: realtime/package.json =====
+{
+  "name": "realtime",
+  "version": "1.0.0",
+  "description": "Realtime WSS gateway for DM service",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+===== FILE: realtime/src/app.js =====
+const express = require('express');
+const notFound = require('./errors/notFound');
+const errorHandler = require('./errors/errorHandler');
+
+function createApp() {
+	const app = express();
+
+	app.get('/health', (req, res) => {
+		return res.status(200).json({
+			status: 'ok'
+		});
+	});
+	app.use(notFound);
+	app.use(errorHandler);
+	return app;
+}
+
+module.exports = createApp;
+===== FILE: realtime/src/clients/dm.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function parseResponseBody(response) {
+	if (!response.body)
+		return null;
+	try {
+		return JSON.parse(response.body);
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'dm service returned invalid JSON',
+			{
+				cause: err,
+				details: {
+					service: 'dm'
+				}
+			}
+		);
+	}
+}
+
+async function createMessage(command) {
+	let response;
+	let payload;
+
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.dm.host,
+			port: env.clients.dm.port,
+			path: '/dm/users/' + command.otherUserId + '/messages',
+			method: 'POST',
+			agent: agent,
+			headers: {
+				'Content-Type': 'application/json',
+				'X-User-Id': command.senderId
+			},
+			body: JSON.stringify({
+				content: command.content,
+				clientMsgId: command.clientMessageId
+			})
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'dm service error',
+			{
+				cause: err,
+				details: {
+					service: 'dm',
+					operation: 'createMessage',
+					senderId: command.senderId,
+					otherUserId: command.otherUserId
+				}
+			}
+		);
+	}
+	payload = parseResponseBody(response);
+	if (response.statusCode >= 200 && response.statusCode < 300)
+		return payload;
+	throw new AppError(
+		payload && payload.code ? payload.code : ERROR_CODES.INTERNAL_ERROR,
+		payload && payload.message ? payload.message : 'dm service error',
+		{
+			details: {
+				service: 'dm',
+				operation: 'createMessage',
+				senderId: command.senderId,
+				otherUserId: command.otherUserId,
+				upstreamStatusCode: response.statusCode
+			}
+		}
+	);
+}
+
+module.exports = {
+	createMessage
+};
+===== FILE: realtime/src/clients/https.agent.js =====
+const https = require('https');
+const {buildClientTlsOptions} = require('../config/tls');
+
+const agent = new https.Agent(buildClientTlsOptions());
+
+module.exports = agent;
+===== FILE: realtime/src/clients/https.request.js =====
+const https = require('https');
+const env = require('../config/env');
+
+function buildTimeoutError(timeoutMs) {
+	const err = new Error('upstream request timeout');
+
+	err.code = 'UPSTREAM_TIMEOUT';
+	err.timeoutMs = timeoutMs;
+	return err;
+}
+
+function request(options) {
+	return new Promise((resolve, reject) => {
+		let req;
+		let chunks;
+		const timeoutMs = options.timeoutMs || env.timeouts.upstreamRequestMs;
+		const requestOptions = {
+			protocol: options.protocol,
+			hostname: options.hostname,
+			port: options.port,
+			path: options.path,
+			method: options.method,
+			agent: options.agent,
+			headers: options.headers
+		};
+
+		chunks = '';
+		req = https.request(requestOptions, (res) => {
+			res.setEncoding('utf8');
+			res.on('data', (chunk) => {
+				chunks += chunk;
+			});
+			res.on('end', () => {
+				resolve({
+					statusCode: res.statusCode,
+					headers: res.headers,
+					body: chunks
+				});
+			});
+		});
+		req.setTimeout(timeoutMs, () => {
+			req.destroy(buildTimeoutError(timeoutMs));
+		});
+		req.on('error', reject);
+		if (options.body)
+			req.write(options.body);
+		req.end();
+	});
+}
+
+module.exports = request;
+===== FILE: realtime/src/config/env.js =====
+const dotenv = require('dotenv');
+
+dotenv.config({quiet: true});
+
+function requireEnv(name) {
+	const value = process.env[name];
+
+	if (!value)
+		throw new Error('Missing required environment variable: ' + name);
+	return value;
+}
+
+function requireNumberEnv(name) {
+	const value = Number(requireEnv(name));
+
+	if (Number.isNaN(value))
+		throw new Error('Environment variable must be a number: ' + name);
+	return value;
+}
+
+const env = {
+	service: {
+		name: requireEnv('SERVICE_NAME')
+	},
+	http: {
+		host: requireEnv('HOST'),
+		port: requireNumberEnv('PORT')
+	},
+	timeouts: {
+		upstreamRequestMs: requireNumberEnv('UPSTREAM_REQUEST_TIMEOUT_MS')
+	},
+	tls: {
+		certPath: requireEnv('SSL_CERT_PATH'),
+		keyPath: requireEnv('SSL_KEY_PATH'),
+		caPath: requireEnv('SSL_CA_PATH')
+	},
+	clients: {
+		dm: {
+			host: requireEnv('DM_SERVICE_HOST'),
+			port: requireNumberEnv('DM_SERVICE_PORT')
+		}
+	},
+	ws: {
+		path: requireEnv('WS_PATH'),
+		tokenSecret: requireEnv('WS_TOKEN_SECRET'),
+		authTimeoutMs: requireNumberEnv('WS_AUTH_TIMEOUT_MS'),
+		heartbeatIntervalMs: requireNumberEnv('WS_HEARTBEAT_INTERVAL_MS'),
+		maxPayloadBytes: requireNumberEnv('WS_MAX_PAYLOAD_BYTES')
+	}
+};
+
+module.exports = env;
+===== FILE: realtime/src/config/tls.js =====
+const fs = require('fs');
+const env = require('./env');
+
+function buildServerTlsOptions() {
+	return {
+		cert: fs.readFileSync(env.tls.certPath),
+		key: fs.readFileSync(env.tls.keyPath),
+		ca: fs.readFileSync(env.tls.caPath)
+	};
+}
+
+function buildClientTlsOptions() {
+	return {
+		cert: fs.readFileSync(env.tls.certPath),
+		key: fs.readFileSync(env.tls.keyPath),
+		ca: fs.readFileSync(env.tls.caPath),
+		rejectUnauthorized: true
+	};
+}
+
+module.exports = {
+	buildServerTlsOptions,
+	buildClientTlsOptions
+};
+===== FILE: realtime/src/errors/AppError.js =====
+class AppError extends Error {
+	constructor(code, message, options = {}) {
+		if (options.cause)
+			super(message, {cause: options.cause});
+		else
+			super(message);
+		this.name = 'AppError';
+		this.code = code;
+		this.details = options.details;
+		Error.captureStackTrace(this, AppError);
+	}
+}
+
+module.exports = AppError;
+===== FILE: realtime/src/errors/errorCode.js =====
+const ERROR_CODES = {
+	INVALID_ARGUMENT: 'INVALID_ARGUMENT',
+	UNAUTHORIZED: 'UNAUTHORIZED',
+	NOT_FOUND: 'NOT_FOUND',
+	INTERNAL_ERROR: 'INTERNAL_ERROR'
+};
+
+module.exports = ERROR_CODES;
+===== FILE: realtime/src/errors/errorHandler.js =====
+const ERROR_CODES = require('./errorCodes');
+
+function getStatusCode(code) {
+	if (code === ERROR_CODES.INVALID_ARGUMENT)
+		return 400;
+	if (code === ERROR_CODES.UNAUTHORIZED)
+		return 401;
+	if (code === ERROR_CODES.NOT_FOUND)
+		return 404;
+	return 500;
+}
+
+function getErrorCode(err) {
+	if (err && err.code)
+		return err.code;
+	return ERROR_CODES.INTERNAL_ERROR;
+}
+
+function getResponseMessage(err, statusCode) {
+	if (statusCode === 500)
+		return 'Internal server error';
+	return err.message;
+}
+
+function logError(req, err, statusCode, code) {
+	if (statusCode >= 500) {
+		console.error('[realtime] request failed', {
+			method: req.method,
+			path: req.originalUrl,
+			statusCode: statusCode,
+			code: code,
+			message: err.message,
+			details: err.details
+		});
+		console.error(err.stack || err);
+		if (err.cause) {
+			console.error('[realtime] cause');
+			console.error(err.cause.stack || err.cause);
+		}
+	}
+}
+
+function errorHandler(err, req, res, next) {
+	const code = getErrorCode(err);
+	const statusCode = getStatusCode(code);
+	const message = getResponseMessage(err, statusCode);
+
+	logError(req, err, statusCode, code);
+	return res.status(statusCode).json({
+		code: code,
+		message: message
+	});
+}
+
+module.exports = errorHandler;
+===== FILE: realtime/src/errors/notFound.js =====
+const AppError = require('./AppError');
+const ERROR_CODES = require('./errorCodes');
+
+function notFound(req, res, next) {
+	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
+}
+
+module.exports = notFound;
+===== FILE: realtime/src/server.js =====
+const https = require('https');
+const env = require('./config/env');
+const {buildServerTlsOptions} = require('./config/tls');
+const createApp = require('./app');
+const attachWebSocketServer = require('./ws/attachWebSocketServer');
+
+function main() {
+	const app = createApp();
+	const server = https.createServer(buildServerTlsOptions(), app);
+
+	attachWebSocketServer(server);
+	server.listen(env.http.port, env.http.host, () => {
+		console.log(
+			'[' + env.service.name + '] listening on https://'
+			+ env.http.host + ':' + env.http.port
+			+ ' (ws path: ' + env.ws.path + ')'
+		);
+	});
+}
+
+main();
+===== FILE: realtime/src/services/chat.service.js =====
+const dmClient = require('../clients/dm.client');
+
+async function sendMessage(command) {
+	return dmClient.createMessage({
+		senderId: command.senderId,
+		otherUserId: command.otherUserId,
+		content: command.content,
+		clientMessageId: command.clientMessageId
+	});
+}
+
+module.exports = {
+	sendMessage
+};
+===== FILE: realtime/src/services/session.service.js =====
+const {sendJson} = require('../ws/send');
+
+const allSockets = new Set();
+const socketsByUserId = new Map();
+const userIdBySocket = new Map();
+
+function addSocket(ws) {
+	allSockets.add(ws);
+}
+
+function authenticateSocket(userId, ws) {
+	let userSockets;
+
+	userIdBySocket.set(ws, userId);
+	userSockets = socketsByUserId.get(userId);
+	if (!userSockets) {
+		userSockets = new Set();
+		socketsByUserId.set(userId, userSockets);
+	}
+	userSockets.add(ws);
+}
+
+function removeSocket(ws) {
+	const userId = userIdBySocket.get(ws);
+	const userSockets = socketsByUserId.get(userId);
+
+	allSockets.delete(ws);
+	userIdBySocket.delete(ws);
+	if (!userSockets)
+		return;
+	userSockets.delete(ws);
+	if (userSockets.size === 0)
+		socketsByUserId.delete(userId);
+}
+
+function sendToUser(userId, frame, excludedSocket) {
+	const userSockets = socketsByUserId.get(userId);
+
+	if (!userSockets)
+		return;
+	userSockets.forEach((socket) => {
+		if (socket !== excludedSocket)
+			sendJson(socket, frame);
+	});
+}
+
+function forEachSocket(callback) {
+	allSockets.forEach(callback);
+}
+
+module.exports = {
+	addSocket,
+	authenticateSocket,
+	removeSocket,
+	sendToUser,
+	forEachSocket
+};
+===== FILE: realtime/src/services/wsToken.service.js =====
+const {createHmac, timingSafeEqual} = require('node:crypto');
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function unauthorized() {
+	return new AppError(
+		ERROR_CODES.UNAUTHORIZED,
+		'invalid auth token'
+	);
+}
+
+function decodeBase64UrlToBuffer(value) {
+	let input = value.replace(/-/g, '+').replace(/_/g, '/');
+
+	while (input.length % 4 !== 0)
+		input += '=';
+	return Buffer.from(input, 'base64');
+}
+
+function parseJsonBase64Url(value) {
+	try {
+		return JSON.parse(decodeBase64UrlToBuffer(value).toString('utf8'));
+	}
+	catch (err) {
+		throw unauthorized();
+	}
+}
+
+function buildSignature(unsignedToken) {
+	return createHmac('sha256', env.ws.tokenSecret)
+		.update(unsignedToken)
+		.digest();
+}
+
+function assertValidHeader(header) {
+	if (!header || typeof header !== 'object')
+		throw unauthorized();
+	if (header.alg !== 'HS256')
+		throw unauthorized();
+	if (header.typ !== 'JWT')
+		throw unauthorized();
+}
+
+function assertValidSignature(unsignedToken, signaturePart) {
+	let providedSignature;
+	const expectedSignature = buildSignature(unsignedToken);
+
+	try {
+		providedSignature = decodeBase64UrlToBuffer(signaturePart);
+	}
+	catch (err) {
+		throw unauthorized();
+	}
+	if (providedSignature.length !== expectedSignature.length)
+		throw unauthorized();
+	if (!timingSafeEqual(providedSignature, expectedSignature))
+		throw unauthorized();
+}
+
+function validatePayload(payload) {
+	if (!payload || typeof payload !== 'object')
+		throw unauthorized();
+	if (!isUuidV7(payload.sub))
+		throw unauthorized();
+	if (!Number.isInteger(payload.exp))
+		throw unauthorized();
+	if (Date.now() >= payload.exp * 1000)
+		throw unauthorized();
+	return {
+		userId: normalizeUuid(payload.sub)
+	};
+}
+
+function verifyWsToken(token) {
+	let parts;
+	let header;
+	let payload;
+	let unsignedToken;
+
+	if (typeof token !== 'string' || token.trim() === '')
+		throw unauthorized();
+	parts = token.split('.');
+	if (parts.length !== 3)
+		throw unauthorized();
+	header = parseJsonBase64Url(parts[0]);
+	payload = parseJsonBase64Url(parts[1]);
+	unsignedToken = parts[0] + '.' + parts[1];
+	assertValidHeader(header);
+	assertValidSignature(unsignedToken, parts[2]);
+	return validatePayload(payload);
+}
+
+module.exports = {
+	verifyWsToken
+};
+===== FILE: realtime/src/validation/ws.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function validateUuidField(value, fieldName, requiredMessage) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			requiredMessage
+		);
+	}
+	value = normalizeUuid(value);
+	if (!isUuidV7(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a valid UUIDv7'
+		);
+	}
+	return value;
+}
+
+function validateOptionalRequestId(value) {
+	if (value === undefined)
+		return undefined;
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'requestId must be a non-empty string'
+		);
+	}
+	return value;
+}
+
+function validateContent(value) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'content is required'
+		);
+	}
+	return value;
+}
+
+function validateIncomingFrame(rawData) {
+	let frame;
+
+	try {
+		frame = JSON.parse(rawData.toString('utf8'));
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'invalid JSON frame'
+		);
+	}
+	if (!frame || typeof frame !== 'object' || Array.isArray(frame)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame must be a JSON object'
+		);
+	}
+	if (typeof frame.type !== 'string' || frame.type.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame.type is required'
+		);
+	}
+	return frame;
+}
+
+function validateAuthFrame(frame) {
+	if (typeof frame.token !== 'string' || frame.token.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'token is required'
+		);
+	}
+	return {
+		token: frame.token
+	};
+}
+
+function validateChatSendFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		content: validateContent(frame.content),
+		clientMessageId: validateUuidField(
+			frame.clientMsgId,
+			'clientMsgId',
+			'clientMsgId is required'
+		)
+	};
+}
+
+module.exports = {
+	validateIncomingFrame,
+	validateAuthFrame,
+	validateChatSendFrame
+};
+===== FILE: realtime/src/ws/attachWebSocketServer.js =====
+const {WebSocketServer} = require('ws');
+const env = require('../config/env');
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const sessionService = require('../services/session.service');
+const {handleSocketMessage} = require('./message.handler');
+const {sendError} = require('./send');
+
+function getRequestPath(url) {
+	return new URL(url, 'https://realtime.local').pathname;
+}
+
+function rejectUpgrade(socket, statusCode, reason) {
+	socket.write(
+		'HTTP/1.1 ' + statusCode + ' ' + reason + '\r\n'
+		+ 'Connection: close\r\n'
+		+ '\r\n'
+	);
+	socket.destroy();
+}
+
+function installSocketLifecycle(ws) {
+	sessionService.addSocket(ws);
+	ws.isAlive = true;
+	ws.authenticated = false;
+	ws.userId = undefined;
+	ws.on('pong', () => {
+		ws.isAlive = true;
+	});
+	ws.on('message', (data, isBinary) => {
+		if (isBinary) {
+			sendError(
+				ws,
+				new AppError(
+					ERROR_CODES.INVALID_ARGUMENT,
+					'binary frames are not supported'
+				)
+			);
+			ws.close(1003, 'binary not supported');
+			return;
+		}
+		handleSocketMessage(ws, data).catch((err) => {
+			sendError(ws, err);
+		});
+	});
+	ws.on('close', () => {
+		sessionService.removeSocket(ws);
+	});
+	ws.on('error', () => {
+	});
+	setTimeout(() => {
+		if (ws.authenticated !== true)
+			ws.close(1008, 'auth timeout');
+	}, env.ws.authTimeoutMs);
+}
+
+function startHeartbeat() {
+	setInterval(() => {
+		sessionService.forEachSocket((ws) => {
+			if (ws.isAlive === false) {
+				ws.terminate();
+				return;
+			}
+			ws.isAlive = false;
+			ws.ping();
+		});
+	}, env.ws.heartbeatIntervalMs);
+}
+
+function attachWebSocketServer(server) {
+	const wss = new WebSocketServer({
+		noServer: true,
+		maxPayload: env.ws.maxPayloadBytes,
+		perMessageDeflate: false
+	});
+
+	server.on('upgrade', (request, socket, head) => {
+		if (getRequestPath(request.url) !== env.ws.path) {
+			rejectUpgrade(socket, 404, 'Not Found');
+			return;
+		}
+		wss.handleUpgrade(request, socket, head, (ws) => {
+			wss.emit('connection', ws, request);
+		});
+	});
+	wss.on('connection', (ws) => {
+		installSocketLifecycle(ws);
+	});
+	startHeartbeat();
+	return wss;
+}
+
+module.exports = attachWebSocketServer;
+===== FILE: realtime/src/ws/message.handler.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const chatService = require('../services/chat.service');
+const sessionService = require('../services/session.service');
+const {verifyWsToken} = require('../services/wsToken.service');
+const {
+	validateIncomingFrame,
+	validateAuthFrame,
+	validateChatSendFrame
+} = require('../validation/ws.validation');
+const {sendJson, sendError} = require('./send');
+
+async function handleAuthFrame(ws, frame) {
+	let command;
+	let session;
+
+	command = validateAuthFrame(frame);
+	session = verifyWsToken(command.token);
+	sessionService.authenticateSocket(session.userId, ws);
+	ws.authenticated = true;
+	ws.userId = session.userId;
+	sendJson(ws, {
+		type: 'auth.ok',
+		userId: session.userId
+	});
+}
+
+async function handleChatSendFrame(ws, frame) {
+	let command;
+	let message;
+	const outboundSender = {};
+	const outboundRecipient = {
+		type: 'chat.message'
+	};
+
+	command = validateChatSendFrame(frame);
+	message = await chatService.sendMessage({
+		senderId: ws.userId,
+		otherUserId: command.otherUserId,
+		content: command.content,
+		clientMessageId: command.clientMessageId
+	});
+	outboundSender.type = 'chat.sent';
+	outboundSender.message = message;
+	if (command.requestId !== undefined)
+		outboundSender.requestId = command.requestId;
+	outboundRecipient.message = message;
+	sendJson(ws, outboundSender);
+	sessionService.sendToUser(ws.userId, outboundRecipient, ws);
+	sessionService.sendToUser(command.otherUserId, outboundRecipient);
+}
+
+async function handleSocketMessage(ws, rawData) {
+	let frame;
+
+	try {
+		frame = validateIncomingFrame(rawData);
+	}
+	catch (err) {
+		sendError(ws, err);
+		return;
+	}
+	if (ws.authenticated !== true) {
+		if (frame.type !== 'auth') {
+			sendError(
+				ws,
+				new AppError(ERROR_CODES.UNAUTHORIZED, 'auth required')
+			);
+			ws.close(1008, 'auth required');
+			return;
+		}
+		try {
+			await handleAuthFrame(ws, frame);
+		}
+		catch (err) {
+			sendError(ws, err);
+			ws.close(1008, 'unauthorized');
+		}
+		return;
+	}
+	if (frame.type === 'auth') {
+		sendError(
+			ws,
+			new AppError(
+				ERROR_CODES.INVALID_ARGUMENT,
+				'socket already authenticated'
+			)
+		);
+		return;
+	}
+	if (frame.type === 'chat.send') {
+		try {
+			await handleChatSendFrame(ws, frame);
+		}
+		catch (err) {
+			sendError(ws, err, frame.requestId);
+		}
+		return;
+	}
+	sendError(
+		ws,
+		new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type')
+	);
+}
+
+module.exports = {
+	handleSocketMessage
+};
+===== FILE: realtime/src/ws/send.js =====
+const WebSocket = require('ws');
+
+function sendJson(ws, payload) {
+	if (ws.readyState !== WebSocket.OPEN)
+		return;
+	ws.send(JSON.stringify(payload));
+}
+
+function sendError(ws, err, requestId) {
+	const frame = {
+		type: 'error',
+		code: err && err.code ? err.code : 'INTERNAL_ERROR',
+		message: err && err.message ? err.message : 'internal error'
+	};
+
+	if (requestId !== undefined)
+		frame.requestId = requestId;
+	sendJson(ws, frame);
+}
+
+module.exports = {
+	sendJson,
+	sendError
+};

@@ -56,6 +56,10 @@ services:
       SOCIAL_SERVICE_HOST: social
       SOCIAL_SERVICE_PORT: 7000
 
+      REALTIME_SERVICE_HOST: realtime
+      REALTIME_SERVICE_PORT: 7100
+      REALTIME_PUSH_PATH: /push
+
       DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm
       DB_SSL_CA_PATH: /app/certs/ca.crt
       DB_SSL_CERT_PATH: /app/certs/dm.crt
@@ -64,14 +68,74 @@ services:
       UPSTREAM_REQUEST_TIMEOUT_MS: 3000
 
       PRISMA_DATABASE_URL: postgresql://dm@dm-db:5432/dm?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/dm.p12&sslaccept=strict
-
     networks:
       - dm_net
     command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
 
+  realtime:
+    build:
+      context: ./realtime
+    container_name: realtime-app
+    ports:
+      - "7100:7100"
+    working_dir: /app
+    volumes:
+      - ./realtime:/app
+      - realtime_node_modules:/app/node_modules
+    environment:
+      SERVICE_NAME: realtime
+      HOST: 0.0.0.0
+      PORT: 7100
+
+      SSL_CERT_PATH: /app/certs/realtime.crt
+      SSL_KEY_PATH: /app/certs/realtime.key
+      SSL_CA_PATH: /app/certs/ca.crt
+
+      DM_SERVICE_HOST: dm
+      DM_SERVICE_PORT: 7000
+
+      NOTIFICATIONS_SERVICE_HOST: notifications
+      NOTIFICATIONS_SERVICE_PORT: 7000
+
+      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+
+      WS_PATH: /ws
+      WS_TOKEN_SECRET: change-me-ws-secret
+      WS_AUTH_TIMEOUT_MS: 5000
+      WS_HEARTBEAT_INTERVAL_MS: 30000
+      WS_MAX_PAYLOAD_BYTES: 65536
+
+      PUSH_ALLOWED_CALLERS: dm,notifications
+      PUSH_PATH: /push
+    networks:
+      - dm_net
+    command: sh -c "npm install && npm run dev"
+
+  ws-test:
+    image: node:20-alpine
+    container_name: ws-test
+    depends_on:
+      realtime:
+        condition: service_started
+    working_dir: /work
+    environment:
+      ENV: /work/.shrc
+      WS_URL: wss://realtime:7100/ws
+      WS_CA_PATH: /certs/ca.crt
+      WS_TOKEN_SECRET: change-me-ws-secret
+      WS_TEST_USER_ID: 019d3641-b111-7cc2-98c4-dc0c0f4a1111
+      WS_TOKEN_TTL_SECONDS: 315360000
+    volumes:
+      - ./ws-test:/work
+      - ./realtime/certs:/certs:ro
+    networks:
+      - dm_net
+    command: sh -c "npm install -g wscat && tail -f /dev/null"
+
 volumes:
   dm_postgres_data:
   dm_node_modules:
+  realtime_node_modules:
 
 networks:
   dm_net:

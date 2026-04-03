@@ -8,7 +8,7 @@ function addSocket(ws) {
 	allSockets.add(ws);
 }
 
-function authenticateSocket(userId, ws) {
+function bindSocketToUser(userId, ws) {
 	let userSockets;
 
 	userIdBySocket.set(ws, userId);
@@ -33,15 +33,18 @@ function removeSocket(ws) {
 		socketsByUserId.delete(userId);
 }
 
-function sendToUser(userId, frame, excludedSocket) {
+function sendToUserSockets(userId, frame) {
+	let deliveredCount;
 	const userSockets = socketsByUserId.get(userId);
 
 	if (!userSockets)
-		return;
+		return 0;
+	deliveredCount = 0;
 	userSockets.forEach((socket) => {
-		if (socket !== excludedSocket)
-			sendJson(socket, frame);
+		sendJson(socket, frame);
+		deliveredCount += 1;
 	});
+	return deliveredCount;
 }
 
 function forEachSocket(callback) {
@@ -50,8 +53,8 @@ function forEachSocket(callback) {
 
 module.exports = {
 	addSocket,
-	authenticateSocket,
+	bindSocketToUser,
 	removeSocket,
-	sendToUser,
+	sendToUserSockets,
 	forEachSocket
 };

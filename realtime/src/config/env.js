@@ -38,6 +38,10 @@ const env = {
 		dm: {
 			host: requireEnv('DM_SERVICE_HOST'),
 			port: requireNumberEnv('DM_SERVICE_PORT')
+		},
+		notifications: {
+			host: requireEnv('NOTIFICATIONS_SERVICE_HOST'),
+			port: requireNumberEnv('NOTIFICATIONS_SERVICE_PORT')
 		}
 	},
 	ws: {
