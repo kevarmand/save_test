@@ -6,15 +6,6 @@ const {
 } = require('../validation/dm.validation');
 const dmService = require('../services/dm.service');
 
-function buildLegacyCreateMessageCommand(req) {
-	return {
-		senderId: req.header('X-User-Id'),
-		otherUserId: req.body.targetUserId,
-		content: req.body.content,
-		clientMessageId: req.body.clientMsgId
-	};
-}
-
 function buildCreateMessageCommand(req) {
 	return {
 		senderId: req.header('X-User-Id'),
@@ -43,7 +34,9 @@ function buildMarkConversationReadCommand(req) {
 
 function buildListConversationsCommand(req) {
 	return {
-		senderId: req.header('X-User-Id')
+		senderId: req.header('X-User-Id'),
+		limit: req.query.limit,
+		cursor: req.query.cursor
 	};
 }
 
@@ -98,24 +91,15 @@ function buildConversationResponse(conversation) {
 	};
 }
 
-function buildListConversationsResponse(conversations) {
+function buildListConversationsResponse(result) {
 	return {
-		conversations: conversations.map(buildConversationResponse)
+		conversations: result.conversations.map(buildConversationResponse),
+		page: {
+			limit: result.limit,
+			hasMore: result.hasMore,
+			nextCursor: result.nextCursor
+		}
 	};
-}
-
-async function createMessageLegacy(req, res, next) {
-	let command;
-	let message;
-
-	try {
-		command = validateCreateMessage(buildLegacyCreateMessageCommand(req));
-		message = await dmService.createMessage(command);
-		return res.status(201).json(buildCreateMessageResponse(message));
-	}
-	catch (err) {
-		return next(err);
-	}
 }
 
 async function createMessageByUser(req, res, next) {
@@ -164,12 +148,12 @@ async function markConversationReadByUser(req, res, next) {
 
 async function listConversations(req, res, next) {
 	let command;
-	let conversations;
+	let result;
 
 	try {
 		command = validateListConversations(buildListConversationsCommand(req));
-		conversations = await dmService.listConversations(command);
-		return res.status(200).json(buildListConversationsResponse(conversations));
+		result = await dmService.listConversations(command);
+		return res.status(200).json(buildListConversationsResponse(result));
 	}
 	catch (err) {
 		return next(err);
@@ -177,7 +161,6 @@ async function listConversations(req, res, next) {
 }
 
 module.exports = {
-	createMessageLegacy,
 	createMessageByUser,
 	listMessagesByUser,
 	markConversationReadByUser,

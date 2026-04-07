@@ -18,6 +18,20 @@ function requireNumberEnv(name) {
 	return value;
 }
 
+function requireCsvEnv(name) {
+	const values = requireEnv(name)
+		.split(',')
+		.map((item) => item.trim())
+		.filter((item) => item !== '');
+
+	if (values.length === 0) {
+		throw new Error(
+			'Environment variable must contain at least one value: ' + name
+		);
+	}
+	return values;
+}
+
 const env = {
 	service: {
 		name: requireEnv('SERVICE_NAME')
@@ -25,6 +39,11 @@ const env = {
 	http: {
 		host: requireEnv('HOST'),
 		port: requireNumberEnv('PORT')
+	},
+	internal: {
+		host: requireEnv('INTERNAL_HOST'),
+		port: requireNumberEnv('INTERNAL_PORT'),
+		allowedClientCns: requireCsvEnv('INTERNAL_ALLOWED_CLIENT_CNS')
 	},
 	timeouts: {
 		upstreamRequestMs: requireNumberEnv('UPSTREAM_REQUEST_TIMEOUT_MS')

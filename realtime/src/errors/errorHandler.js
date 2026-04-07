@@ -22,30 +22,11 @@ function getResponseMessage(err, statusCode) {
 	return err.message;
 }
 
-function logError(req, err, statusCode, code) {
-	if (statusCode >= 500) {
-		console.error('[realtime] request failed', {
-			method: req.method,
-			path: req.originalUrl,
-			statusCode: statusCode,
-			code: code,
-			message: err.message,
-			details: err.details
-		});
-		console.error(err.stack || err);
-		if (err.cause) {
-			console.error('[realtime] cause');
-			console.error(err.cause.stack || err.cause);
-		}
-	}
-}
-
 function errorHandler(err, req, res, next) {
 	const code = getErrorCode(err);
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
-	logError(req, err, statusCode, code);
 	return res.status(statusCode).json({
 		code: code,
 		message: message

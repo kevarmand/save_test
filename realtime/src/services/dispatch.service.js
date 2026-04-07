@@ -42,7 +42,7 @@ async function dispatch(frameType, userId, command) {
 			data: await dmClient.markConversationRead({
 				userId: userId,
 				otherUserId: command.otherUserId,
-				lastReadMessageId: command.lastReadMessageId
+				messageId: command.messageId
 			})
 		};
 	}

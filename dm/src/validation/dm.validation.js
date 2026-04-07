@@ -72,6 +72,16 @@ function validateOptionalBeforeMessageId(value) {
 	);
 }
 
+function validateOptionalCursor(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
 function validateContent(value) {
 	if (typeof value !== 'string' || value.trim() === '') {
 		throw new AppError(
@@ -149,7 +159,9 @@ function validateListConversations(command) {
 		);
 	}
 	return {
-		senderId: validateSenderId(command.senderId)
+		senderId: validateSenderId(command.senderId),
+		limit: validateLimit(command.limit),
+		cursor: validateOptionalCursor(command.cursor)
 	};
 }
 

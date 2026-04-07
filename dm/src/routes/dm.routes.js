@@ -1,6 +1,5 @@
 const express = require('express');
 const {
-	createMessageLegacy,
 	createMessageByUser,
 	listMessagesByUser,
 	markConversationReadByUser,
@@ -9,7 +8,6 @@ const {
 
 const router = express.Router();
 
-router.post('/', createMessageLegacy);
 router.get('/conversations', listConversations);
 router.post('/users/:otherUserId/messages', createMessageByUser);
 router.get('/users/:otherUserId/messages', listMessagesByUser);

@@ -23,7 +23,6 @@ function parseResponseBody(response) {
 		);
 	}
 }
-
 async function performRequest(options) {
 	let response;
 	let payload;
@@ -142,7 +141,7 @@ async function markConversationRead(command) {
 		path: '/dm/users/' + command.otherUserId + '/read',
 		headers: buildHeaders(command.userId, true),
 		body: JSON.stringify({
-			lastReadMessageId: command.lastReadMessageId
+			messageId: command.messageId
 		})
 	});
 }

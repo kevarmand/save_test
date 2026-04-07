@@ -60,6 +60,16 @@ function validateOptionalLimit(value) {
 function validateOptionalCursor(value) {
 	if (value === undefined)
 		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
+function validateOptionalNotificationCursor(value) {
+	if (value === undefined)
+		return undefined;
 	if (typeof value !== 'string' || value.trim() === '') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
@@ -179,10 +189,10 @@ function validateDmReadFrame(frame) {
 			'otherUserId',
 			'otherUserId is required'
 		),
-		lastReadMessageId: validateUuidField(
-			frame.lastReadMessageId,
-			'lastReadMessageId',
-			'lastReadMessageId is required'
+		messageId: validateUuidField(
+			frame.messageId,
+			'messageId',
+			'messageId is required'
 		)
 	};
 }
@@ -191,7 +201,7 @@ function validateNotificationsListFrame(frame) {
 	return {
 		requestId: validateOptionalRequestId(frame.requestId),
 		limit: validateOptionalLimit(frame.limit),
-		cursor: validateOptionalCursor(frame.cursor)
+		cursor: validateOptionalNotificationCursor(frame.cursor)
 	};
 }
 

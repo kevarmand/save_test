@@ -57,8 +57,10 @@ services:
       SOCIAL_SERVICE_PORT: 7000
 
       REALTIME_SERVICE_HOST: realtime
-      REALTIME_SERVICE_PORT: 7100
-      REALTIME_PUSH_PATH: /push
+      REALTIME_SERVICE_PORT: 7443
+
+      NOTIFICATION_SERVICE_HOST: notifications
+      NOTIFICATION_SERVICE_PORT: 7000
 
       DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm
       DB_SSL_CA_PATH: /app/certs/ca.crt
@@ -76,16 +78,19 @@ services:
     build:
       context: ./realtime
     container_name: realtime-app
-    ports:
-      - "7100:7100"
     working_dir: /app
     volumes:
       - ./realtime:/app
       - realtime_node_modules:/app/node_modules
     environment:
       SERVICE_NAME: realtime
+
       HOST: 0.0.0.0
       PORT: 7100
+
+      INTERNAL_HOST: 0.0.0.0
+      INTERNAL_PORT: 7443
+      INTERNAL_ALLOWED_CLIENT_CNS: dm,notifications
 
       SSL_CERT_PATH: /app/certs/realtime.crt
       SSL_KEY_PATH: /app/certs/realtime.key
@@ -104,9 +109,6 @@ services:
       WS_AUTH_TIMEOUT_MS: 5000
       WS_HEARTBEAT_INTERVAL_MS: 30000
       WS_MAX_PAYLOAD_BYTES: 65536
-
-      PUSH_ALLOWED_CALLERS: dm,notifications
-      PUSH_PATH: /push
     networks:
       - dm_net
     command: sh -c "npm install && npm run dev"

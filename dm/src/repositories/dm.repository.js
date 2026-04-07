@@ -71,6 +71,13 @@ function isUniqueConstraintError(err) {
 	return err && err.code === 'P2002';
 }
 
+function buildCreateMessageResult(message, users, senderId, created) {
+	return {
+		created: created,
+		message: mapMessage(message, users, senderId)
+	};
+}
+
 async function findConversationByUsers(users) {
 	return prisma.conversation.findUnique({
 		where: {
@@ -127,7 +134,7 @@ async function createMessageInTransaction(data, users) {
 			},
 			data: buildSenderReadUpdate(data.senderId, users, message.id)
 		});
-		return mapMessage(message, users, data.senderId);
+		return buildCreateMessageResult(message, users, data.senderId, true);
 	});
 }
 
@@ -144,7 +151,7 @@ async function createMessage(data) {
 			throw err;
 		message = await findExistingMessage(data, users);
 		if (message)
-			return mapMessage(message, users, data.senderId);
+			return buildCreateMessageResult(message, users, data.senderId, false);
 		throw err;
 	}
 }
@@ -265,15 +272,22 @@ async function markConversationRead(data) {
 	};
 }
 
-async function listConversations(senderId) {
-	const conversations = await prisma.conversation.findMany({
+async function listConversations(data) {
+	let conversations;
+	let mapped;
+	let filtered;
+	let paged;
+	let hasMore;
+	let nextCursor;
+
+	conversations = await prisma.conversation.findMany({
 		where: {
 			OR: [
 				{
-					userLowId: senderId
+					userLowId: data.senderId
 				},
 				{
-					userHighId: senderId
+					userHighId: data.senderId
 				}
 			]
 		},
@@ -286,10 +300,9 @@ async function listConversations(senderId) {
 			}
 		}
 	});
-
-	return conversations
+	mapped = conversations
 		.map((conversation) => {
-			return mapConversation(conversation, senderId);
+			return mapConversation(conversation, data.senderId);
 		})
 		.sort((left, right) => {
 			if (!left.lastMessage && !right.lastMessage)
@@ -304,6 +317,25 @@ async function listConversations(senderId) {
 				return -1;
 			return 0;
 		});
+	filtered = data.cursor
+		? mapped.filter((conversation) => {
+			return conversation.lastMessage
+				&& conversation.lastMessage.messageId < data.cursor;
+		})
+		: mapped;
+	paged = filtered.slice(0, data.limit + 1);
+	hasMore = paged.length > data.limit;
+	if (hasMore)
+		paged.pop();
+	nextCursor = hasMore && paged.length > 0
+		? paged[paged.length - 1].lastMessage.messageId
+		: null;
+	return {
+		conversations: paged,
+		limit: data.limit,
+		hasMore: hasMore,
+		nextCursor: nextCursor
+	};
 }
 
 module.exports = {

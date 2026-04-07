@@ -1,9 +1,12 @@
 const WebSocket = require('ws');
+const {logWsFrameSent} = require('../log/logger');
 
 function sendJson(ws, payload) {
 	if (ws.readyState !== WebSocket.OPEN)
-		return;
+		return false;
+	logWsFrameSent(ws, payload);
 	ws.send(JSON.stringify(payload));
+	return true;
 }
 
 function sendError(ws, err, requestId) {
@@ -15,7 +18,7 @@ function sendError(ws, err, requestId) {
 
 	if (requestId !== undefined)
 		frame.requestId = requestId;
-	sendJson(ws, frame);
+	return sendJson(ws, frame);
 }
 
 module.exports = {

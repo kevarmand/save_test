@@ -1,21 +1,18 @@
-const https = require('https');
-const env = require('./config/env');
-const {buildServerTlsOptions} = require('./config/tls');
-const createApp = require('./app');
-const attachWebSocketServer = require('./ws/attachWebSocketServer');
+const {
+	createFrontServer,
+	listenFrontServer
+} = require('./servers/front.server');
+const {
+	createInternalServer,
+	listenInternalServer
+} = require('./servers/internal.server');
 
 function main() {
-	const app = createApp();
-	const server = https.createServer(buildServerTlsOptions(), app);
+	const frontServer = createFrontServer();
+	const internalServer = createInternalServer();
 
-	attachWebSocketServer(server);
-	server.listen(env.http.port, env.http.host, () => {
-		console.log(
-			'[' + env.service.name + '] listening on https://'
-			+ env.http.host + ':' + env.http.port
-			+ ' (ws path: ' + env.ws.path + ')'
-		);
-	});
+	listenFrontServer(frontServer);
+	listenInternalServer(internalServer);
 }
 
 main();

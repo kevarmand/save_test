@@ -50,6 +50,14 @@ const env = {
 		social: {
 			host: requireEnv('SOCIAL_SERVICE_HOST'),
 			port: requireNumberEnv('SOCIAL_SERVICE_PORT')
+		},
+		realtime: {
+			host: requireEnv('REALTIME_SERVICE_HOST'),
+			port: requireNumberEnv('REALTIME_SERVICE_PORT')
+		},
+		notification: {
+			host: requireEnv('NOTIFICATION_SERVICE_HOST'),
+			port: requireNumberEnv('NOTIFICATION_SERVICE_PORT')
 		}
 	}
 };

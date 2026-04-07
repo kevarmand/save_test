@@ -41,8 +41,8 @@ function sendToUserSockets(userId, frame) {
 		return 0;
 	deliveredCount = 0;
 	userSockets.forEach((socket) => {
-		sendJson(socket, frame);
-		deliveredCount += 1;
+		if (sendJson(socket, frame))
+			deliveredCount += 1;
 	});
 	return deliveredCount;
 }

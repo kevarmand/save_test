@@ -1,7 +1,7 @@
 const fs = require('fs');
 const env = require('./env');
 
-function buildServerTlsOptions() {
+function buildBaseTlsOptions() {
 	return {
 		cert: fs.readFileSync(env.tls.certPath),
 		key: fs.readFileSync(env.tls.keyPath),
@@ -9,16 +9,27 @@ function buildServerTlsOptions() {
 	};
 }
 
+function buildFrontServerTlsOptions() {
+	return buildBaseTlsOptions();
+}
+
+function buildInternalServerTlsOptions() {
+	return {
+		...buildBaseTlsOptions(),
+		requestCert: true,
+		rejectUnauthorized: true
+	};
+}
+
 function buildClientTlsOptions() {
 	return {
-		cert: fs.readFileSync(env.tls.certPath),
-		key: fs.readFileSync(env.tls.keyPath),
-		ca: fs.readFileSync(env.tls.caPath),
+		...buildBaseTlsOptions(),
 		rejectUnauthorized: true
 	};
 }
 
 module.exports = {
-	buildServerTlsOptions,
+	buildFrontServerTlsOptions,
+	buildInternalServerTlsOptions,
 	buildClientTlsOptions
 };

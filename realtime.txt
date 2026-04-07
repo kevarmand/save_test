@@ -1,36 +1,145 @@
 ===== TREE: realtime =====
 realtime
 ├── certs
+│   ├── ca.crt
+│   ├── realtime.crt
+│   └── realtime.key
 ├── Dockerfile
 ├── package.json
 ├── package-lock.json
 └── src
-    ├── app.js
+    ├── apps
+    │   ├── front.app.js
+    │   └── internal.app.js
     ├── clients
     │   ├── dm.client.js
     │   ├── https.agent.js
-    │   └── https.request.js
+    │   ├── https.request.js
+    │   └── notifications.client.js
     ├── config
     │   ├── env.js
     │   └── tls.js
+    ├── controllers
+    │   └── push.controller.js
     ├── errors
     │   ├── AppError.js
-    │   ├── errorCode.js
+    │   ├── errorCodes.js
     │   ├── errorHandler.js
     │   └── notFound.js
+    ├── log
+    │   └── logger.js
+    ├── middlewares
+    │   ├── httpLogger.js
+    │   └── internalClientAuth.js
+    ├── routes
+    │   └── internal.routes.js
     ├── server.js
+    ├── servers
+    │   ├── front.server.js
+    │   └── internal.server.js
     ├── services
-    │   ├── chat.service.js
-    │   ├── session.service.js
-    │   └── wsToken.service.js
+    │   ├── auth.service.js
+    │   ├── dispatch.service.js
+    │   ├── push.service.js
+    │   └── registry.service.js
     ├── validation
+    │   ├── push.validation.js
     │   └── ws.validation.js
     └── ws
         ├── attachWebSocketServer.js
         ├── message.handler.js
         └── send.js
 
-8 directories, 21 files
+14 directories, 35 files
+
+===== FILE: realtime/certs/ca.crt =====
+-----BEGIN CERTIFICATE-----
+MIIFFTCCAv2gAwIBAgIUOzuKZXw27G+OMwP+3X/aX5hfRJ0wDQYJKoZIhvcNAQEL
+BQAwGjEYMBYGA1UEAwwPRGV2LUludGVybmFsLUNBMB4XDTI2MDMyOTE3MzU1M1oX
+DTM2MDMyNjE3MzU1M1owGjEYMBYGA1UEAwwPRGV2LUludGVybmFsLUNBMIICIjAN
+BgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA7I4VvB0y7vnX8JeV8XhTtpUiWkDA
+oew/wV0TzLO8beSne52X8yVwLR1agBwKS53AyyC11z6nYyLJeUmwFoAbhdJ/fmoN
+uve1+Lao0h27nlPmwvjygYQRPcQ+puS15xONB86JWg44UfJURWSGZmIHPfaCoa0d
+kHa17HwM6KYsYGyyapOYTXSjv5dtCYFoNNpSg8MLa7p1lz11oyuojX0fM4NIEKZW
+zVBCME4Es2MVxR3kQf5WrFpK6EMPE1POLiSPio8DATciCi4wfle7Nyuv3s1uTtfu
+rn6niUkUo3HDLe7mwG1vEWTMWrD9G1cbq2E1Qg5jvIjT/zSXtFc7s8m7o3+dJuWF
+MMR8zStyAkDr9xVr2AH0nRWzTkhUMuOgYDX01wf86hKUB5bC7dlvAaKBoNNf8DnI
+uLbsclUPEtq8ZY3hIYFGL+7lhXJwgkcusE+OQ5XBeNe1Ulrd2LuHt3D9P7Hin9v6
+JV8LlnJn5/uYVk+NAZ/AONOz2Y6aMxfgdT7JSbAOK1LogAo34wrDTx1so6ubIKez
+3IO9bSltucbKMF0eYQZauf/e9ZRRRfxpE+14Lcv6GFjgzY2UjoZJA843B2oKS2RP
+6mgckNcZLjfQpYBa9GatC89dMmwzmJ1t63RmvI1s9h74Vk5ty9lfugZ5EZdrdoSb
+lvFJlbX+E2d8qmMCAwEAAaNTMFEwHQYDVR0OBBYEFFQVgK3DIS4oQy8iQ7UNlzI3
+3zBnMB8GA1UdIwQYMBaAFFQVgK3DIS4oQy8iQ7UNlzI33zBnMA8GA1UdEwEB/wQF
+MAMBAf8wDQYJKoZIhvcNAQELBQADggIBAGlt13/kwvnMzql2x0WCWqTmIMzosnUZ
+DOfGXc0D+KYmmE6YAGNLtekjTf/MhXdLZnWiDs0BomTbx9jvllV/y7xI2o0nszNh
+eaS6YkjTrtbzMAwbyIwrbdQ78WmpowC1Y/D4Lvn9Exy4Ql8SHp1xiZRvUweTkeGb
+zkXe92MfeFF7YguX2m1JwIBz4g2HEEr9LBGv08fV7+Xn3Jm0OdwgqQpFn8YxU08c
+ddhjpSD98zrXk+t+T9BYQsJbOnvHKd2ryvWykCcEWeapAtiySKrQivCwYmqJd+Jl
+UZi4w1Al5/mIKslSBPLkvkhxb5a3Y8rxiDOtQdB9ngMJ1xxeDMEqcySxlcJUmRuL
+hl3z/msVJvXdQw4ZJJRJaV/7sMAc1vfmTVLZNDX+TN0tvXJTS0CuY/vY1XcgF3as
+xyRK1J2gxMBTEFyN27tRNozSHwsuSdTH5ddCiRl+jr20XDMYkdXAtKUcZIHJw4ex
+EOue6vv11hnCVJjk2HwRZfYqE2C65Ce72hN23Fgwt0vfBMsBNBUf/UvWwIz6FdMB
+gBQHbSSRNYhb892rwgSn7JxRrr1F9qg8BDkdtWpYKnx9zecTUaKuMqQhRsIxB9qt
+PeZAzvDJyrreUbI2vINCcfY2WqDgRxNQI/SEcA8L1+6l3oGoh8irqkuxA1KQkkMZ
+EwSpmX9cFeM3
+-----END CERTIFICATE-----
+
+===== FILE: realtime/certs/realtime.crt =====
+-----BEGIN CERTIFICATE-----
+MIIESzCCAjOgAwIBAgIUL1lrPz+8WnJQM4z+T2zSNN469xIwDQYJKoZIhvcNAQEL
+BQAwGjEYMBYGA1UEAwwPRGV2LUludGVybmFsLUNBMB4XDTI2MDMyOTE3MzU1NVoX
+DTI3MDMyOTE3MzU1NVowEzERMA8GA1UEAwwIcmVhbHRpbWUwggEiMA0GCSqGSIb3
+DQEBAQUAA4IBDwAwggEKAoIBAQCl/IqCWGZn6ysjZLXC329EbyBsVlnwSXhl06DD
+VahBb7raDIeRD45gfaK7q/EVOX7jOn5o3L48ZEcHu/c74oAYx4vt6TjQpH0qkk48
+4tcSj52Efk0L8p0GuUrrLTjd9EGe5UYAUtJZgHGVWChoXmmTWsUZpEIIs9C71dDP
+qAGda2lKyDA1/luyJATLc5DbQUN2R5HcY0OyLC4xAkgbEDQNt5J2wnNqK2IWuR0K
+aS/5iSjscVDUNnfneo6CZi1Mh6j4Kz5jxXK+7aqiQ44t6g0z4VEndUZahyTDcFxp
+snahLUBhhB4Xb6pb68VuXCm4BDKEzQUyiYvCVFrQ/xE9X4enAgMBAAGjgY8wgYww
+CQYDVR0TBAIwADALBgNVHQ8EBAMCBaAwHQYDVR0lBBYwFAYIKwYBBQUHAwEGCCsG
+AQUFBwMCMBMGA1UdEQQMMAqCCHJlYWx0aW1lMB0GA1UdDgQWBBQuzh9vRqw/HpKz
+t5PyK6XLs+s0AjAfBgNVHSMEGDAWgBRUFYCtwyEuKEMvIkO1DZcyN98wZzANBgkq
+hkiG9w0BAQsFAAOCAgEAu+5vfRo3cuJ03ziuiMfBmYpYGT7nLAEuMO7fTasXVoOv
+EP/t0EAOHogF0nxjY5TQe2I98gJu6o8TxN4KWK/CQ4zD6nUyeXMa0z7XVYrJZ403
+GLGlbUHBxmhqK+5jO3Ga9t6QOj0cyliIsa3Y8+q15OtXx0XX0zbWt9FVfeV9Id21
+pAjJKSrSvLEgtMl2DQKEHlFrvIlBTlVqI3p/OEKiVyzVeAmj5jpmJuhVPNpkQ+cm
+vC4DG/AGn54UfqOvikqNWNrc03Gx37mQYlGmVvQ+jkqDt+yl/ug8BC/xfO3MKgX7
+RvB85QI0icJ1fNDas5QuQG0T/IWZYIgIvvJqNTZtxnSvzrCQ/T+FDeBhWPAXwyMa
+ps07MgkwE7UWerGydTQpnP7fmx/CTDn4WNMIZho+ujtiHfbmIYQF3ZmoghJshF57
++JVn43u5vJIoJcDvxhojQxZVn1hQ6hvFOQWG1STXeonoVi97gZBVdLCh6lNCNHP4
+fkK5phefx6qukniNguzCc9uFEVbRB2kMHneuyY+HkII81pzVYOnUiteMPYIHzqs0
+glm++jfdSFlG27L7bXcLLpUtjWtPVOW5hRh/S0ueOSS+bQaq+Co2LbIAKmzJeUyh
+1aRU1ybuBPSvkOesAYKodVf0dCj4IU4XYL+UKNEfHUWlw2WcZsGbgSqddwqgAWU=
+-----END CERTIFICATE-----
+
+===== FILE: realtime/certs/realtime.key =====
+-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCl/IqCWGZn6ysj
+ZLXC329EbyBsVlnwSXhl06DDVahBb7raDIeRD45gfaK7q/EVOX7jOn5o3L48ZEcH
+u/c74oAYx4vt6TjQpH0qkk484tcSj52Efk0L8p0GuUrrLTjd9EGe5UYAUtJZgHGV
+WChoXmmTWsUZpEIIs9C71dDPqAGda2lKyDA1/luyJATLc5DbQUN2R5HcY0OyLC4x
+AkgbEDQNt5J2wnNqK2IWuR0KaS/5iSjscVDUNnfneo6CZi1Mh6j4Kz5jxXK+7aqi
+Q44t6g0z4VEndUZahyTDcFxpsnahLUBhhB4Xb6pb68VuXCm4BDKEzQUyiYvCVFrQ
+/xE9X4enAgMBAAECggEAM/4pos+u8DE9V35V4v9bGpwWk2jvDjHtWTQToOwlYq3t
+YRzYoCs3xWjFPzUKNMRIR0QM0asHmeItT7JkrKjzyA9FeRX7WnuTy3B9ulux09oR
+lK19U9dAsZj76zPEot2+alfV+Ab5Zdiye33cVmjweBxQLgqCNrigkx3UJR+ytcys
+rOIuQZfrWY4yQKg1FeYd+UogwJt6hO8ftim/T13hHoK3uqe9v0helDekIVS3ZbuB
+dujs2pL69mFJs/kfxHXQRDjBvdUFhtBAdR6KZEwoRltadxJF29td0Rg01d/zIKkX
+0KusFG4yYrupaSaouGaekwBTfJmgtWlegJWr/GccWQKBgQDE12hf9hMc8Q1it4R3
+4AKhajfGdUlRcuwrG18U3tOb4vkrjDclU679j/qWuDNNxDk+13DnjzDMahkQGuui
+Ea6RPFe0qLElSa/Lf46xRuXgd1nghXqNMr0W6FYqiE/7lXEwYq+aq4IZBRPguq9T
+FMD1NDHwGOTB4K28l8cQpEAZDwKBgQDX3zblaJ02PlQol6de47kLcUO2/ewr/h8J
+zwruCQY8XfMUnNjnWxc6TN21gOVFjHNlimzGusOenaHwqviUc2NbL57c+4X9yUU9
+AJy9F56NUFVsUztNbXvhfh9KNyv1sQclwMvDIC3OLvsbsVYIeagtAIJcIGuDnbkm
+dsVUSvG36QKBgAg9F9JEY2JnuG60TagSySlmX7U/vXTaQYZAXAdsmCDDLDilYr1+
+NinIt+1NAmCz4M1/iOs4NAuqOShSaCBdaxgLFYSrNtbfsarryNYkqIRvmmRqUcnN
+INrvmIOpNufJxnYG+2CW4xgW/VD/n0zz5muc5qYs9I4k0EC/fYZ1yXUDAoGBANd+
+PgC4c+fIRJ7Y9P1mejyP7rbnuDEaVsWl5xVD8POmHZhAEs6xQfiy7sfXSggpcrC0
+hG3F1q2qUhQ7uDYJEe/fE8kpVNLJbtK8n7qrr10GCqA+Xf6nAnlRO88MUFfNRoNL
+eJzqrI8cmxND7cw8FcQGtBtfSbRzaHabLdU9kxqxAoGAVSypd9yL+uMFpqChB21z
+V85t4cST1LskIdvIS1IPL13YalrjjHDguAw9/GSsebJ2zm4XGn/PgAwZxNkzCrnv
+owdXVK08z3Ugyk9UJozBxBBvkgrGY7EXjCwnL5I+0np217JhiJCE/zLcLH4wCV97
+F+IBKy8M+t+yPvcuTHuFOzs=
+-----END PRIVATE KEY-----
 
 ===== FILE: realtime/Dockerfile =====
 FROM node:24-alpine
@@ -63,14 +172,17 @@ CMD ["npm", "run", "dev"]
     "nodemon": "^3.1.14"
   }
 }
-===== FILE: realtime/src/app.js =====
+===== FILE: realtime/src/apps/front.app.js =====
 const express = require('express');
-const notFound = require('./errors/notFound');
-const errorHandler = require('./errors/errorHandler');
+const notFound = require('../errors/notFound');
+const errorHandler = require('../errors/errorHandler');
+const httpLogger = require('../middlewares/httpLogger');
 
-function createApp() {
+function createFrontApp() {
 	const app = express();
 
+	app.use(httpLogger);
+	app.use(express.json());
 	app.get('/health', (req, res) => {
 		return res.status(200).json({
 			status: 'ok'
@@ -81,7 +193,28 @@ function createApp() {
 	return app;
 }
 
-module.exports = createApp;
+module.exports = createFrontApp;
+===== FILE: realtime/src/apps/internal.app.js =====
+const express = require('express');
+const internalRoutes = require('../routes/internal.routes');
+const requireInternalClientAuth = require('../middlewares/internalClientAuth');
+const notFound = require('../errors/notFound');
+const errorHandler = require('../errors/errorHandler');
+const httpLogger = require('../middlewares/httpLogger');
+
+function createInternalApp() {
+	const app = express();
+
+	app.use(httpLogger);
+	app.use(express.json());
+	app.use(requireInternalClientAuth);
+	app.use('/internal', internalRoutes);
+	app.use(notFound);
+	app.use(errorHandler);
+	return app;
+}
+
+module.exports = createInternalApp;
 ===== FILE: realtime/src/clients/dm.client.js =====
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
@@ -108,8 +241,7 @@ function parseResponseBody(response) {
 		);
 	}
 }
-
-async function createMessage(command) {
+async function performRequest(options) {
 	let response;
 	let payload;
 
@@ -118,17 +250,11 @@ async function createMessage(command) {
 			protocol: 'https:',
 			hostname: env.clients.dm.host,
 			port: env.clients.dm.port,
-			path: '/dm/users/' + command.otherUserId + '/messages',
-			method: 'POST',
+			path: options.path,
+			method: options.method,
 			agent: agent,
-			headers: {
-				'Content-Type': 'application/json',
-				'X-User-Id': command.senderId
-			},
-			body: JSON.stringify({
-				content: command.content,
-				clientMsgId: command.clientMessageId
-			})
+			headers: options.headers,
+			body: options.body
 		});
 	}
 	catch (err) {
@@ -139,9 +265,7 @@ async function createMessage(command) {
 				cause: err,
 				details: {
 					service: 'dm',
-					operation: 'createMessage',
-					senderId: command.senderId,
-					otherUserId: command.otherUserId
+					operation: options.operation
 				}
 			}
 		);
@@ -155,17 +279,96 @@ async function createMessage(command) {
 		{
 			details: {
 				service: 'dm',
-				operation: 'createMessage',
-				senderId: command.senderId,
-				otherUserId: command.otherUserId,
+				operation: options.operation,
 				upstreamStatusCode: response.statusCode
 			}
 		}
 	);
 }
 
+function buildHeaders(userId, hasBody) {
+	const headers = {
+		'X-User-Id': userId
+	};
+
+	if (hasBody)
+		headers['Content-Type'] = 'application/json';
+	return headers;
+}
+
+function buildConversationQuery(command) {
+	const params = new URLSearchParams();
+
+	if (command.limit !== undefined)
+		params.set('limit', String(command.limit));
+	if (command.cursor !== undefined)
+		params.set('cursor', command.cursor);
+	if (params.size === 0)
+		return '';
+	return '?' + params.toString();
+}
+
+function buildMessagesQuery(command) {
+	const params = new URLSearchParams();
+
+	if (command.limit !== undefined)
+		params.set('limit', String(command.limit));
+	if (command.beforeMessageId !== undefined)
+		params.set('beforeMessageId', command.beforeMessageId);
+	if (params.size === 0)
+		return '';
+	return '?' + params.toString();
+}
+
+async function sendMessage(command) {
+	return performRequest({
+		operation: 'sendMessage',
+		method: 'POST',
+		path: '/dm/users/' + command.otherUserId + '/messages',
+		headers: buildHeaders(command.senderId, true),
+		body: JSON.stringify({
+			content: command.content,
+			clientMsgId: command.clientMessageId
+		})
+	});
+}
+
+async function listConversations(command) {
+	return performRequest({
+		operation: 'listConversations',
+		method: 'GET',
+		path: '/dm/conversations' + buildConversationQuery(command),
+		headers: buildHeaders(command.userId, false)
+	});
+}
+
+async function listMessages(command) {
+	return performRequest({
+		operation: 'listMessages',
+		method: 'GET',
+		path: '/dm/users/' + command.otherUserId + '/messages'
+			+ buildMessagesQuery(command),
+		headers: buildHeaders(command.userId, false)
+	});
+}
+
+async function markConversationRead(command) {
+	return performRequest({
+		operation: 'markConversationRead',
+		method: 'POST',
+		path: '/dm/users/' + command.otherUserId + '/read',
+		headers: buildHeaders(command.userId, true),
+		body: JSON.stringify({
+			messageId: command.messageId
+		})
+	});
+}
+
 module.exports = {
-	createMessage
+	sendMessage,
+	listConversations,
+	listMessages,
+	markConversationRead
 };
 ===== FILE: realtime/src/clients/https.agent.js =====
 const https = require('https');
@@ -226,6 +429,125 @@ function request(options) {
 }
 
 module.exports = request;
+===== FILE: realtime/src/clients/notifications.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function parseResponseBody(response) {
+	if (!response.body)
+		return null;
+	try {
+		return JSON.parse(response.body);
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'notifications service returned invalid JSON',
+			{
+				cause: err,
+				details: {
+					service: 'notifications'
+				}
+			}
+		);
+	}
+}
+
+async function performRequest(options) {
+	let response;
+	let payload;
+
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.notifications.host,
+			port: env.clients.notifications.port,
+			path: options.path,
+			method: options.method,
+			agent: agent,
+			headers: options.headers,
+			body: options.body
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'notifications service error',
+			{
+				cause: err,
+				details: {
+					service: 'notifications',
+					operation: options.operation
+				}
+			}
+		);
+	}
+	payload = parseResponseBody(response);
+	if (response.statusCode >= 200 && response.statusCode < 300)
+		return payload;
+	throw new AppError(
+		payload && payload.code ? payload.code : ERROR_CODES.INTERNAL_ERROR,
+		payload && payload.message ? payload.message : 'notifications service error',
+		{
+			details: {
+				service: 'notifications',
+				operation: options.operation,
+				upstreamStatusCode: response.statusCode
+			}
+		}
+	);
+}
+
+function buildHeaders(userId, hasBody) {
+	const headers = {
+		'X-User-Id': userId
+	};
+
+	if (hasBody)
+		headers['Content-Type'] = 'application/json';
+	return headers;
+}
+
+function buildListQuery(command) {
+	const params = new URLSearchParams();
+
+	if (command.limit !== undefined)
+		params.set('limit', String(command.limit));
+	if (command.cursor !== undefined)
+		params.set('cursor', command.cursor);
+	if (params.size === 0)
+		return '';
+	return '?' + params.toString();
+}
+
+async function listNotifications(command) {
+	return performRequest({
+		operation: 'listNotifications',
+		method: 'GET',
+		path: '/notifications' + buildListQuery(command),
+		headers: buildHeaders(command.userId, false)
+	});
+}
+
+async function markNotificationsRead(command) {
+	return performRequest({
+		operation: 'markNotificationsRead',
+		method: 'POST',
+		path: '/notifications/read',
+		headers: buildHeaders(command.userId, true),
+		body: JSON.stringify({
+			notificationIds: command.notificationIds
+		})
+	});
+}
+
+module.exports = {
+	listNotifications,
+	markNotificationsRead
+};
 ===== FILE: realtime/src/config/env.js =====
 const dotenv = require('dotenv');
 
@@ -247,6 +569,20 @@ function requireNumberEnv(name) {
 	return value;
 }
 
+function requireCsvEnv(name) {
+	const values = requireEnv(name)
+		.split(',')
+		.map((item) => item.trim())
+		.filter((item) => item !== '');
+
+	if (values.length === 0) {
+		throw new Error(
+			'Environment variable must contain at least one value: ' + name
+		);
+	}
+	return values;
+}
+
 const env = {
 	service: {
 		name: requireEnv('SERVICE_NAME')
@@ -254,6 +590,11 @@ const env = {
 	http: {
 		host: requireEnv('HOST'),
 		port: requireNumberEnv('PORT')
+	},
+	internal: {
+		host: requireEnv('INTERNAL_HOST'),
+		port: requireNumberEnv('INTERNAL_PORT'),
+		allowedClientCns: requireCsvEnv('INTERNAL_ALLOWED_CLIENT_CNS')
 	},
 	timeouts: {
 		upstreamRequestMs: requireNumberEnv('UPSTREAM_REQUEST_TIMEOUT_MS')
@@ -267,6 +608,10 @@ const env = {
 		dm: {
 			host: requireEnv('DM_SERVICE_HOST'),
 			port: requireNumberEnv('DM_SERVICE_PORT')
+		},
+		notifications: {
+			host: requireEnv('NOTIFICATIONS_SERVICE_HOST'),
+			port: requireNumberEnv('NOTIFICATIONS_SERVICE_PORT')
 		}
 	},
 	ws: {
@@ -283,7 +628,7 @@ module.exports = env;
 const fs = require('fs');
 const env = require('./env');
 
-function buildServerTlsOptions() {
+function buildBaseTlsOptions() {
 	return {
 		cert: fs.readFileSync(env.tls.certPath),
 		key: fs.readFileSync(env.tls.keyPath),
@@ -291,18 +636,50 @@ function buildServerTlsOptions() {
 	};
 }
 
+function buildFrontServerTlsOptions() {
+	return buildBaseTlsOptions();
+}
+
+function buildInternalServerTlsOptions() {
+	return {
+		...buildBaseTlsOptions(),
+		requestCert: true,
+		rejectUnauthorized: true
+	};
+}
+
 function buildClientTlsOptions() {
 	return {
-		cert: fs.readFileSync(env.tls.certPath),
-		key: fs.readFileSync(env.tls.keyPath),
-		ca: fs.readFileSync(env.tls.caPath),
+		...buildBaseTlsOptions(),
 		rejectUnauthorized: true
 	};
 }
 
 module.exports = {
-	buildServerTlsOptions,
+	buildFrontServerTlsOptions,
+	buildInternalServerTlsOptions,
 	buildClientTlsOptions
+};
+===== FILE: realtime/src/controllers/push.controller.js =====
+const pushService = require('../services/push.service');
+const {validatePushRequest} = require('../validation/push.validation');
+
+function push(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validatePushRequest(req.body);
+		result = pushService.pushToUsers(command);
+		return res.status(200).json(result);
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+module.exports = {
+	push
 };
 ===== FILE: realtime/src/errors/AppError.js =====
 class AppError extends Error {
@@ -319,7 +696,7 @@ class AppError extends Error {
 }
 
 module.exports = AppError;
-===== FILE: realtime/src/errors/errorCode.js =====
+===== FILE: realtime/src/errors/errorCodes.js =====
 const ERROR_CODES = {
 	INVALID_ARGUMENT: 'INVALID_ARGUMENT',
 	UNAUTHORIZED: 'UNAUTHORIZED',
@@ -353,30 +730,11 @@ function getResponseMessage(err, statusCode) {
 	return err.message;
 }
 
-function logError(req, err, statusCode, code) {
-	if (statusCode >= 500) {
-		console.error('[realtime] request failed', {
-			method: req.method,
-			path: req.originalUrl,
-			statusCode: statusCode,
-			code: code,
-			message: err.message,
-			details: err.details
-		});
-		console.error(err.stack || err);
-		if (err.cause) {
-			console.error('[realtime] cause');
-			console.error(err.cause.stack || err.cause);
-		}
-	}
-}
-
 function errorHandler(err, req, res, next) {
 	const code = getErrorCode(err);
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
-	logError(req, err, statusCode, code);
 	return res.status(statusCode).json({
 		code: code,
 		message: message
@@ -393,102 +751,258 @@ function notFound(req, res, next) {
 }
 
 module.exports = notFound;
+===== FILE: realtime/src/log/logger.js =====
+function getHttpCallerCommonName(req) {
+	const certificate = req.socket && req.socket.getPeerCertificate
+		? req.socket.getPeerCertificate()
+		: undefined;
+
+	if (!certificate || !certificate.subject)
+		return undefined;
+	return certificate.subject.CN;
+}
+
+function buildHttpContext(req) {
+	return {
+		method: req.method,
+		path: req.originalUrl,
+		caller: getHttpCallerCommonName(req),
+		authorized: req.socket && req.socket.authorized,
+		authorizationError: req.socket && req.socket.authorizationError
+	};
+}
+
+function buildWsContext(ws) {
+	return {
+		userId: ws.userId,
+		authenticated: ws.authenticated === true,
+		remoteAddress: ws._socket && ws._socket.remoteAddress
+	};
+}
+
+function logHttpRequestReceived(req) {
+	console.log('[realtime] request received', buildHttpContext(req));
+}
+
+function logHttpResponseSent(req, statusCode, payload) {
+	console.log('[realtime] response sent', {
+		...buildHttpContext(req),
+		statusCode: statusCode,
+		payload: payload
+	});
+}
+
+function logWsFrameReceived(ws, frame) {
+	console.log('[realtime] ws frame received', {
+		...buildWsContext(ws),
+		frame: frame
+	});
+}
+
+function logWsFrameSent(ws, frame) {
+	console.log('[realtime] ws frame sent', {
+		...buildWsContext(ws),
+		frame: frame
+	});
+}
+
+module.exports = {
+	logHttpRequestReceived,
+	logHttpResponseSent,
+	logWsFrameReceived,
+	logWsFrameSent
+};
+===== FILE: realtime/src/middlewares/httpLogger.js =====
+const {
+	logHttpRequestReceived,
+	logHttpResponseSent
+} = require('../log/logger');
+
+function httpLogger(req, res, next) {
+	const originalJson = res.json.bind(res);
+
+	logHttpRequestReceived(req);
+	res.json = (payload) => {
+		logHttpResponseSent(req, res.statusCode, payload);
+		return originalJson(payload);
+	};
+	return next();
+}
+
+module.exports = httpLogger;
+===== FILE: realtime/src/middlewares/internalClientAuth.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+
+function getClientCommonName(req) {
+	const certificate = req.socket.getPeerCertificate();
+
+	if (!certificate || typeof certificate !== 'object')
+		return undefined;
+	if (!certificate.subject || typeof certificate.subject.CN !== 'string')
+		return undefined;
+	if (certificate.subject.CN.trim() === '')
+		return undefined;
+	return certificate.subject.CN.trim();
+}
+
+function isAllowedCommonName(commonName) {
+	return env.internal.allowedClientCns.includes(commonName);
+}
+
+function requireInternalClientAuth(req, res, next) {
+	const commonName = getClientCommonName(req);
+
+	if (req.socket.authorized !== true) {
+		return next(new AppError(
+			ERROR_CODES.UNAUTHORIZED,
+			'client certificate required'
+		));
+	}
+	if (!commonName) {
+		return next(new AppError(
+			ERROR_CODES.UNAUTHORIZED,
+			'client certificate common name is missing'
+		));
+	}
+	if (!isAllowedCommonName(commonName)) {
+		return next(new AppError(
+			ERROR_CODES.UNAUTHORIZED,
+			'client certificate is not allowed'
+		));
+	}
+	return next();
+}
+
+module.exports = requireInternalClientAuth;
+===== FILE: realtime/src/routes/internal.routes.js =====
+const express = require('express');
+const pushController = require('../controllers/push.controller');
+
+const router = express.Router();
+
+router.post('/push', pushController.push);
+
+module.exports = router;
 ===== FILE: realtime/src/server.js =====
-const https = require('https');
-const env = require('./config/env');
-const {buildServerTlsOptions} = require('./config/tls');
-const createApp = require('./app');
-const attachWebSocketServer = require('./ws/attachWebSocketServer');
+const {
+	createFrontServer,
+	listenFrontServer
+} = require('./servers/front.server');
+const {
+	createInternalServer,
+	listenInternalServer
+} = require('./servers/internal.server');
 
 function main() {
-	const app = createApp();
-	const server = https.createServer(buildServerTlsOptions(), app);
+	const frontServer = createFrontServer();
+	const internalServer = createInternalServer();
+
+	listenFrontServer(frontServer);
+	listenInternalServer(internalServer);
+}
+
+main();
+===== FILE: realtime/src/servers/front.server.js =====
+const https = require('https');
+const env = require('../config/env');
+const {buildFrontServerTlsOptions} = require('../config/tls');
+const createFrontApp = require('../apps/front.app');
+const attachWebSocketServer = require('../ws/attachWebSocketServer');
+
+function installFrontServerDebug(server) {
+	server.on('tlsClientError', (err, socket) => {
+		console.error('[realtime] front tls client error', {
+			message: err.message,
+			code: err.code,
+			remoteAddress: socket.remoteAddress
+		});
+	});
+}
+
+function createFrontServer() {
+	const app = createFrontApp();
+	const server = https.createServer(buildFrontServerTlsOptions(), app);
 
 	attachWebSocketServer(server);
+	installFrontServerDebug(server);
+	return server;
+}
+
+function listenFrontServer(server) {
 	server.listen(env.http.port, env.http.host, () => {
 		console.log(
-			'[' + env.service.name + '] listening on https://'
+			'[' + env.service.name + '] front listener on https://'
 			+ env.http.host + ':' + env.http.port
 			+ ' (ws path: ' + env.ws.path + ')'
 		);
 	});
 }
 
-main();
-===== FILE: realtime/src/services/chat.service.js =====
-const dmClient = require('../clients/dm.client');
+module.exports = {
+	createFrontServer,
+	listenFrontServer
+};
+===== FILE: realtime/src/servers/internal.server.js =====
+const https = require('https');
+const env = require('../config/env');
+const {buildInternalServerTlsOptions} = require('../config/tls');
+const createInternalApp = require('../apps/internal.app');
 
-async function sendMessage(command) {
-	return dmClient.createMessage({
-		senderId: command.senderId,
-		otherUserId: command.otherUserId,
-		content: command.content,
-		clientMessageId: command.clientMessageId
+function getPeerCommonName(socket) {
+	const certificate = socket.getPeerCertificate();
+
+	if (!certificate || typeof certificate !== 'object')
+		return undefined;
+	if (!certificate.subject || typeof certificate.subject.CN !== 'string')
+		return undefined;
+	if (certificate.subject.CN.trim() === '')
+		return undefined;
+	return certificate.subject.CN.trim();
+}
+
+function installInternalServerDebug(server) {
+	server.on('secureConnection', (socket) => {
+		console.log('[realtime] internal tls secure connection', {
+			remoteAddress: socket.remoteAddress,
+			authorized: socket.authorized,
+			authorizationError: socket.authorizationError,
+			clientCn: getPeerCommonName(socket)
+		});
+	});
+	server.on('tlsClientError', (err, socket) => {
+		console.error('[realtime] internal tls client error', {
+			message: err.message,
+			code: err.code,
+			remoteAddress: socket.remoteAddress
+		});
+	});
+}
+
+function createInternalServer() {
+	const app = createInternalApp();
+	const server = https.createServer(buildInternalServerTlsOptions(), app);
+
+	installInternalServerDebug(server);
+	return server;
+}
+
+function listenInternalServer(server) {
+	server.listen(env.internal.port, env.internal.host, () => {
+		console.log(
+			'[' + env.service.name + '] internal listener on https://'
+			+ env.internal.host + ':' + env.internal.port
+			+ ' allowed CNs=' + env.internal.allowedClientCns.join(',')
+		);
 	});
 }
 
 module.exports = {
-	sendMessage
+	createInternalServer,
+	listenInternalServer
 };
-===== FILE: realtime/src/services/session.service.js =====
-const {sendJson} = require('../ws/send');
-
-const allSockets = new Set();
-const socketsByUserId = new Map();
-const userIdBySocket = new Map();
-
-function addSocket(ws) {
-	allSockets.add(ws);
-}
-
-function authenticateSocket(userId, ws) {
-	let userSockets;
-
-	userIdBySocket.set(ws, userId);
-	userSockets = socketsByUserId.get(userId);
-	if (!userSockets) {
-		userSockets = new Set();
-		socketsByUserId.set(userId, userSockets);
-	}
-	userSockets.add(ws);
-}
-
-function removeSocket(ws) {
-	const userId = userIdBySocket.get(ws);
-	const userSockets = socketsByUserId.get(userId);
-
-	allSockets.delete(ws);
-	userIdBySocket.delete(ws);
-	if (!userSockets)
-		return;
-	userSockets.delete(ws);
-	if (userSockets.size === 0)
-		socketsByUserId.delete(userId);
-}
-
-function sendToUser(userId, frame, excludedSocket) {
-	const userSockets = socketsByUserId.get(userId);
-
-	if (!userSockets)
-		return;
-	userSockets.forEach((socket) => {
-		if (socket !== excludedSocket)
-			sendJson(socket, frame);
-	});
-}
-
-function forEachSocket(callback) {
-	allSockets.forEach(callback);
-}
-
-module.exports = {
-	addSocket,
-	authenticateSocket,
-	removeSocket,
-	sendToUser,
-	forEachSocket
-};
-===== FILE: realtime/src/services/wsToken.service.js =====
+===== FILE: realtime/src/services/auth.service.js =====
 const {createHmac, timingSafeEqual} = require('node:crypto');
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
@@ -503,10 +1017,7 @@ function normalizeUuid(value) {
 }
 
 function unauthorized() {
-	return new AppError(
-		ERROR_CODES.UNAUTHORIZED,
-		'invalid auth token'
-	);
+	return new AppError(ERROR_CODES.UNAUTHORIZED, 'invalid auth token');
 }
 
 function decodeBase64UrlToBuffer(value) {
@@ -571,7 +1082,7 @@ function validatePayload(payload) {
 	};
 }
 
-function verifyWsToken(token) {
+function verifyAuthToken(token) {
 	let parts;
 	let header;
 	let payload;
@@ -591,7 +1102,239 @@ function verifyWsToken(token) {
 }
 
 module.exports = {
-	verifyWsToken
+	verifyAuthToken
+};
+===== FILE: realtime/src/services/dispatch.service.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const dmClient = require('../clients/dm.client');
+const notificationsClient = require('../clients/notifications.client');
+
+async function dispatch(frameType, userId, command) {
+	if (frameType === 'dm.send') {
+		return {
+			type: 'dm.send.ok',
+			data: await dmClient.sendMessage({
+				senderId: userId,
+				otherUserId: command.otherUserId,
+				content: command.content,
+				clientMessageId: command.clientMessageId
+			})
+		};
+	}
+	if (frameType === 'dm.conversations.list') {
+		return {
+			type: 'dm.conversations.list.ok',
+			data: await dmClient.listConversations({
+				userId: userId,
+				limit: command.limit,
+				cursor: command.cursor
+			})
+		};
+	}
+	if (frameType === 'dm.messages.list') {
+		return {
+			type: 'dm.messages.list.ok',
+			data: await dmClient.listMessages({
+				userId: userId,
+				otherUserId: command.otherUserId,
+				limit: command.limit,
+				beforeMessageId: command.beforeMessageId
+			})
+		};
+	}
+	if (frameType === 'dm.read') {
+		return {
+			type: 'dm.read.ok',
+			data: await dmClient.markConversationRead({
+				userId: userId,
+				otherUserId: command.otherUserId,
+				messageId: command.messageId
+			})
+		};
+	}
+	if (frameType === 'notifications.list') {
+		return {
+			type: 'notifications.list.ok',
+			data: await notificationsClient.listNotifications({
+				userId: userId,
+				limit: command.limit,
+				cursor: command.cursor
+			})
+		};
+	}
+	if (frameType === 'notifications.read') {
+		return {
+			type: 'notifications.read.ok',
+			data: await notificationsClient.markNotificationsRead({
+				userId: userId,
+				notificationIds: command.notificationIds
+			})
+		};
+	}
+	throw new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type');
+}
+
+module.exports = {
+	dispatch
+};
+===== FILE: realtime/src/services/push.service.js =====
+const registryService = require('./registry.service');
+
+function pushToUsers(command) {
+	let deliveredUsers;
+	let deliveredSockets;
+
+	deliveredUsers = 0;
+	deliveredSockets = 0;
+	command.userIds.forEach((userId) => {
+		const count = registryService.sendToUserSockets(userId, command.frame);
+
+		if (count > 0)
+			deliveredUsers += 1;
+		deliveredSockets += count;
+	});
+	return {
+		deliveredUsers: deliveredUsers,
+		deliveredSockets: deliveredSockets
+	};
+}
+
+module.exports = {
+	pushToUsers
+};
+===== FILE: realtime/src/services/registry.service.js =====
+const {sendJson} = require('../ws/send');
+
+const allSockets = new Set();
+const socketsByUserId = new Map();
+const userIdBySocket = new Map();
+
+function addSocket(ws) {
+	allSockets.add(ws);
+}
+
+function bindSocketToUser(userId, ws) {
+	let userSockets;
+
+	userIdBySocket.set(ws, userId);
+	userSockets = socketsByUserId.get(userId);
+	if (!userSockets) {
+		userSockets = new Set();
+		socketsByUserId.set(userId, userSockets);
+	}
+	userSockets.add(ws);
+}
+
+function removeSocket(ws) {
+	const userId = userIdBySocket.get(ws);
+	const userSockets = socketsByUserId.get(userId);
+
+	allSockets.delete(ws);
+	userIdBySocket.delete(ws);
+	if (!userSockets)
+		return;
+	userSockets.delete(ws);
+	if (userSockets.size === 0)
+		socketsByUserId.delete(userId);
+}
+
+function sendToUserSockets(userId, frame) {
+	let deliveredCount;
+	const userSockets = socketsByUserId.get(userId);
+
+	if (!userSockets)
+		return 0;
+	deliveredCount = 0;
+	userSockets.forEach((socket) => {
+		if (sendJson(socket, frame))
+			deliveredCount += 1;
+	});
+	return deliveredCount;
+}
+
+function forEachSocket(callback) {
+	allSockets.forEach(callback);
+}
+
+module.exports = {
+	addSocket,
+	bindSocketToUser,
+	removeSocket,
+	sendToUserSockets,
+	forEachSocket
+};
+===== FILE: realtime/src/validation/push.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function validateUserIds(value) {
+	let userIds;
+
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'userIds must be a non-empty array'
+		);
+	}
+	userIds = value.map((item) => {
+		if (typeof item !== 'string' || item.trim() === '') {
+			throw new AppError(
+				ERROR_CODES.INVALID_ARGUMENT,
+				'userIds must contain non-empty strings'
+			);
+		}
+		item = normalizeUuid(item);
+		if (!isUuidV7(item)) {
+			throw new AppError(
+				ERROR_CODES.INVALID_ARGUMENT,
+				'userIds must contain valid UUIDv7 values'
+			);
+		}
+		return item;
+	});
+	return Array.from(new Set(userIds));
+}
+
+function validateFrame(value) {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame must be a JSON object'
+		);
+	}
+	if (typeof value.type !== 'string' || value.type.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame.type is required'
+		);
+	}
+	return value;
+}
+
+function validatePushRequest(body) {
+	if (!body || typeof body !== 'object' || Array.isArray(body)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'request body must be a JSON object'
+		);
+	}
+	return {
+		userIds: validateUserIds(body.userIds),
+		frame: validateFrame(body.frame)
+	};
+}
+
+module.exports = {
+	validatePushRequest
 };
 ===== FILE: realtime/src/validation/ws.validation.js =====
 const AppError = require('../errors/AppError');
@@ -607,10 +1350,7 @@ function normalizeUuid(value) {
 
 function validateUuidField(value, fieldName, requiredMessage) {
 	if (typeof value !== 'string' || value.trim() === '') {
-		throw new AppError(
-			ERROR_CODES.INVALID_ARGUMENT,
-			requiredMessage
-		);
+		throw new AppError(ERROR_CODES.INVALID_ARGUMENT, requiredMessage);
 	}
 	value = normalizeUuid(value);
 	if (!isUuidV7(value)) {
@@ -642,6 +1382,62 @@ function validateContent(value) {
 		);
 	}
 	return value;
+}
+
+function validateOptionalLimit(value) {
+	if (value === undefined)
+		return undefined;
+	if (!Number.isInteger(value) || value <= 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'limit must be a positive integer'
+		);
+	}
+	return value;
+}
+
+function validateOptionalCursor(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
+function validateOptionalNotificationCursor(value) {
+	if (value === undefined)
+		return undefined;
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'cursor must be a non-empty string'
+		);
+	}
+	return value;
+}
+
+function validateOptionalMessageId(value, fieldName) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(value, fieldName, fieldName + ' is required');
+}
+
+function validateUuidArray(value, fieldName) {
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a non-empty array'
+		);
+	}
+	return value.map((item) => {
+		return validateUuidField(
+			item,
+			fieldName,
+			fieldName + ' must contain valid UUIDv7 values'
+		);
+	});
 }
 
 function validateIncomingFrame(rawData) {
@@ -683,7 +1479,7 @@ function validateAuthFrame(frame) {
 	};
 }
 
-function validateChatSendFrame(frame) {
+function validateDmSendFrame(frame) {
 	return {
 		requestId: validateOptionalRequestId(frame.requestId),
 		otherUserId: validateUuidField(
@@ -700,17 +1496,91 @@ function validateChatSendFrame(frame) {
 	};
 }
 
+function validateDmConversationsListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		limit: validateOptionalLimit(frame.limit),
+		cursor: validateOptionalCursor(frame.cursor)
+	};
+}
+
+function validateDmMessagesListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		limit: validateOptionalLimit(frame.limit),
+		beforeMessageId: validateOptionalMessageId(
+			frame.beforeMessageId,
+			'beforeMessageId'
+		)
+	};
+}
+
+function validateDmReadFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		messageId: validateUuidField(
+			frame.messageId,
+			'messageId',
+			'messageId is required'
+		)
+	};
+}
+
+function validateNotificationsListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		limit: validateOptionalLimit(frame.limit),
+		cursor: validateOptionalNotificationCursor(frame.cursor)
+	};
+}
+
+function validateNotificationsReadFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		notificationIds: validateUuidArray(
+			frame.notificationIds,
+			'notificationIds'
+		)
+	};
+}
+
+function validateAuthenticatedFrame(frame) {
+	if (frame.type === 'dm.send')
+		return validateDmSendFrame(frame);
+	if (frame.type === 'dm.conversations.list')
+		return validateDmConversationsListFrame(frame);
+	if (frame.type === 'dm.messages.list')
+		return validateDmMessagesListFrame(frame);
+	if (frame.type === 'dm.read')
+		return validateDmReadFrame(frame);
+	if (frame.type === 'notifications.list')
+		return validateNotificationsListFrame(frame);
+	if (frame.type === 'notifications.read')
+		return validateNotificationsReadFrame(frame);
+	throw new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type');
+}
+
 module.exports = {
 	validateIncomingFrame,
 	validateAuthFrame,
-	validateChatSendFrame
+	validateAuthenticatedFrame
 };
 ===== FILE: realtime/src/ws/attachWebSocketServer.js =====
 const {WebSocketServer} = require('ws');
 const env = require('../config/env');
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
-const sessionService = require('../services/session.service');
+const registryService = require('../services/registry.service');
 const {handleSocketMessage} = require('./message.handler');
 const {sendError} = require('./send');
 
@@ -728,7 +1598,7 @@ function rejectUpgrade(socket, statusCode, reason) {
 }
 
 function installSocketLifecycle(ws) {
-	sessionService.addSocket(ws);
+	registryService.addSocket(ws);
 	ws.isAlive = true;
 	ws.authenticated = false;
 	ws.userId = undefined;
@@ -752,7 +1622,7 @@ function installSocketLifecycle(ws) {
 		});
 	});
 	ws.on('close', () => {
-		sessionService.removeSocket(ws);
+		registryService.removeSocket(ws);
 	});
 	ws.on('error', () => {
 	});
@@ -764,7 +1634,7 @@ function installSocketLifecycle(ws) {
 
 function startHeartbeat() {
 	setInterval(() => {
-		sessionService.forEachSocket((ws) => {
+		registryService.forEachSocket((ws) => {
 			if (ws.isAlive === false) {
 				ws.terminate();
 				return;
@@ -802,23 +1672,32 @@ module.exports = attachWebSocketServer;
 ===== FILE: realtime/src/ws/message.handler.js =====
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
-const chatService = require('../services/chat.service');
-const sessionService = require('../services/session.service');
-const {verifyWsToken} = require('../services/wsToken.service');
+const {verifyAuthToken} = require('../services/auth.service');
+const dispatchService = require('../services/dispatch.service');
+const registryService = require('../services/registry.service');
 const {
 	validateIncomingFrame,
 	validateAuthFrame,
-	validateChatSendFrame
+	validateAuthenticatedFrame
 } = require('../validation/ws.validation');
 const {sendJson, sendError} = require('./send');
+const {logWsFrameReceived} = require('../log/logger');
+
+function extractRequestId(frame) {
+	if (!frame)
+		return undefined;
+	if (typeof frame.requestId !== 'string' || frame.requestId.trim() === '')
+		return undefined;
+	return frame.requestId;
+}
 
 async function handleAuthFrame(ws, frame) {
 	let command;
 	let session;
 
 	command = validateAuthFrame(frame);
-	session = verifyWsToken(command.token);
-	sessionService.authenticateSocket(session.userId, ws);
+	session = verifyAuthToken(command.token);
+	registryService.bindSocketToUser(session.userId, ws);
 	ws.authenticated = true;
 	ws.userId = session.userId;
 	sendJson(ws, {
@@ -827,46 +1706,36 @@ async function handleAuthFrame(ws, frame) {
 	});
 }
 
-async function handleChatSendFrame(ws, frame) {
+async function handleAuthenticatedFrame(ws, frame) {
 	let command;
-	let message;
-	const outboundSender = {};
-	const outboundRecipient = {
-		type: 'chat.message'
-	};
+	let responseFrame;
 
-	command = validateChatSendFrame(frame);
-	message = await chatService.sendMessage({
-		senderId: ws.userId,
-		otherUserId: command.otherUserId,
-		content: command.content,
-		clientMessageId: command.clientMessageId
-	});
-	outboundSender.type = 'chat.sent';
-	outboundSender.message = message;
+	command = validateAuthenticatedFrame(frame);
+	responseFrame = await dispatchService.dispatch(frame.type, ws.userId, command);
 	if (command.requestId !== undefined)
-		outboundSender.requestId = command.requestId;
-	outboundRecipient.message = message;
-	sendJson(ws, outboundSender);
-	sessionService.sendToUser(ws.userId, outboundRecipient, ws);
-	sessionService.sendToUser(command.otherUserId, outboundRecipient);
+		responseFrame.requestId = command.requestId;
+	sendJson(ws, responseFrame);
 }
 
 async function handleSocketMessage(ws, rawData) {
 	let frame;
+	let requestId;
 
 	try {
 		frame = validateIncomingFrame(rawData);
+		logWsFrameReceived(ws, frame);
 	}
 	catch (err) {
 		sendError(ws, err);
 		return;
 	}
+	requestId = extractRequestId(frame);
 	if (ws.authenticated !== true) {
 		if (frame.type !== 'auth') {
 			sendError(
 				ws,
-				new AppError(ERROR_CODES.UNAUTHORIZED, 'auth required')
+				new AppError(ERROR_CODES.UNAUTHORIZED, 'auth required'),
+				requestId
 			);
 			ws.close(1008, 'auth required');
 			return;
@@ -875,7 +1744,7 @@ async function handleSocketMessage(ws, rawData) {
 			await handleAuthFrame(ws, frame);
 		}
 		catch (err) {
-			sendError(ws, err);
+			sendError(ws, err, requestId);
 			ws.close(1008, 'unauthorized');
 		}
 		return;
@@ -886,23 +1755,17 @@ async function handleSocketMessage(ws, rawData) {
 			new AppError(
 				ERROR_CODES.INVALID_ARGUMENT,
 				'socket already authenticated'
-			)
+			),
+			requestId
 		);
 		return;
 	}
-	if (frame.type === 'chat.send') {
-		try {
-			await handleChatSendFrame(ws, frame);
-		}
-		catch (err) {
-			sendError(ws, err, frame.requestId);
-		}
-		return;
+	try {
+		await handleAuthenticatedFrame(ws, frame);
 	}
-	sendError(
-		ws,
-		new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type')
-	);
+	catch (err) {
+		sendError(ws, err, requestId);
+	}
 }
 
 module.exports = {
@@ -910,11 +1773,14 @@ module.exports = {
 };
 ===== FILE: realtime/src/ws/send.js =====
 const WebSocket = require('ws');
+const {logWsFrameSent} = require('../log/logger');
 
 function sendJson(ws, payload) {
 	if (ws.readyState !== WebSocket.OPEN)
-		return;
+		return false;
+	logWsFrameSent(ws, payload);
 	ws.send(JSON.stringify(payload));
+	return true;
 }
 
 function sendError(ws, err, requestId) {
@@ -926,7 +1792,7 @@ function sendError(ws, err, requestId) {
 
 	if (requestId !== undefined)
 		frame.requestId = requestId;
-	sendJson(ws, frame);
+	return sendJson(ws, frame);
 }
 
 module.exports = {

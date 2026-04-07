@@ -1,6 +1,8 @@
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
 const dmRepository = require('../repositories/dm.repository');
+const realtimeClient = require('../clients/realtime.client');
+const notificationClient = require('../clients/notification.client');
 
 function assertDifferentUsers(senderId, otherUserId) {
 	if (senderId === otherUserId) {
@@ -11,14 +13,87 @@ function assertDifferentUsers(senderId, otherUserId) {
 	}
 }
 
+function logAsyncFailure(label, err, details) {
+	console.error('[dm] async side effect failed', {
+		label: label,
+		...details
+	});
+	console.error(err.stack || err);
+	if (err.cause) {
+		console.error('[dm] async side effect cause');
+		console.error(err.cause.stack || err.cause);
+	}
+}
+
+function fireAndForget(label, task, details) {
+	setImmediate(() => {
+		task().catch((err) => {
+			logAsyncFailure(label, err, details);
+		});
+	});
+}
+
+function logSettledFailure(label, result, details) {
+	if (result.status === 'rejected')
+		logAsyncFailure(label, result.reason, details);
+}
+
+function runCreateMessageSideEffects(message) {
+	fireAndForget(
+		'createMessageSideEffects',
+		async () => {
+			const results = await Promise.allSettled([
+				realtimeClient.pushDmMessage(message),
+				notificationClient.createDmMessageNotification(message)
+			]);
+
+			logSettledFailure('pushDmMessage', results[0], {
+				messageId: message.messageId,
+				targetUserId: message.otherUserId
+			});
+			logSettledFailure('createDmMessageNotification', results[1], {
+				messageId: message.messageId,
+				targetUserId: message.otherUserId
+			});
+		},
+		{
+			messageId: message.messageId,
+			targetUserId: message.otherUserId
+		}
+	);
+}
+
+function runMarkConversationReadSideEffects(command, result) {
+	fireAndForget(
+		'markConversationReadSideEffects',
+		async () => {
+			await notificationClient.markDmConversationRead({
+				senderId: command.senderId,
+				otherUserId: result.otherUserId,
+				readUpToMessageId: result.readUpToMessageId
+			});
+		},
+		{
+			senderId: command.senderId,
+			otherUserId: result.otherUserId,
+			readUpToMessageId: result.readUpToMessageId
+		}
+	);
+}
+
 async function createMessage(command) {
+	let result;
+
 	assertDifferentUsers(command.senderId, command.otherUserId);
-	return dmRepository.createMessage({
+	result = await dmRepository.createMessage({
 		senderId: command.senderId,
 		otherUserId: command.otherUserId,
 		content: command.content,
 		clientMessageId: command.clientMessageId
 	});
+	if (result.created)
+		runCreateMessageSideEffects(result.message);
+	return result.message;
 }
 
 async function listMessages(command) {
@@ -61,11 +136,16 @@ async function markConversationRead(command) {
 			'message not found in this conversation'
 		);
 	}
+	runMarkConversationReadSideEffects(command, result);
 	return result;
 }
 
 async function listConversations(command) {
-	return dmRepository.listConversations(command.senderId);
+	return dmRepository.listConversations({
+		senderId: command.senderId,
+		limit: command.limit,
+		cursor: command.cursor
+	});
 }
 
 module.exports = {

@@ -9,6 +9,7 @@ const {
 	validateAuthenticatedFrame
 } = require('../validation/ws.validation');
 const {sendJson, sendError} = require('./send');
+const {logWsFrameReceived} = require('../log/logger');
 
 function extractRequestId(frame) {
 	if (!frame)
@@ -50,6 +51,7 @@ async function handleSocketMessage(ws, rawData) {
 
 	try {
 		frame = validateIncomingFrame(rawData);
+		logWsFrameReceived(ws, frame);
 	}
 	catch (err) {
 		sendError(ws, err);

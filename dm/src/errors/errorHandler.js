@@ -34,45 +34,11 @@ function getResponseMessage(err, statusCode) {
 	return err.message;
 }
 
-function getCallerCommonName(req) {
-	const certificate = req.tls && req.tls.peerCertificate;
-
-	if (!certificate || !certificate.subject)
-		return undefined;
-	return certificate.subject.CN;
-}
-
-function buildLogContext(req, err, statusCode, code) {
-	return {
-		method: req.method,
-		path: req.originalUrl,
-		statusCode: statusCode,
-		code: code,
-		message: err.message,
-		details: err.details,
-		caller: getCallerCommonName(req)
-	};
-}
-
-function logError(req, err, statusCode, code) {
-	const context = buildLogContext(req, err, statusCode, code);
-
-	if (statusCode >= 500 || code === ERROR_CODES.UNAUTHORIZED_CALLER) {
-		console.error('[dm] request failed', context);
-		console.error(err.stack || err);
-		if (err.cause) {
-			console.error('[dm] cause');
-			console.error(err.cause.stack || err.cause);
-		}
-	}
-}
-
 function errorHandler(err, req, res, next) {
 	const code = getErrorCode(err);
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
-	logError(req, err, statusCode, code);
 	res.status(statusCode).json({
 		code: code,
 		message: message
