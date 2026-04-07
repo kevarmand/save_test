@@ -707,6 +707,7 @@ const ERROR_CODES = {
 module.exports = ERROR_CODES;
 ===== FILE: realtime/src/errors/errorHandler.js =====
 const ERROR_CODES = require('./errorCodes');
+const {logHttpRequestError} = require('../log/logger');
 
 function getStatusCode(code) {
 	if (code === ERROR_CODES.INVALID_ARGUMENT)
@@ -735,6 +736,8 @@ function errorHandler(err, req, res, next) {
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
+	// log complet côté serveur, réponse simple côté client.
+	logHttpRequestError(req, err);
 	return res.status(statusCode).json({
 		code: code,
 		message: message
@@ -780,6 +783,19 @@ function buildWsContext(ws) {
 	};
 }
 
+function serializeError(err) {
+	if (!err)
+		return undefined;
+	return {
+		name: err.name,
+		code: err.code,
+		message: err.message,
+		details: err.details,
+		stack: err.stack,
+		cause: serializeError(err.cause)
+	};
+}
+
 function logHttpRequestReceived(req) {
 	console.log('[realtime] request received', buildHttpContext(req));
 }
@@ -789,6 +805,13 @@ function logHttpResponseSent(req, statusCode, payload) {
 		...buildHttpContext(req),
 		statusCode: statusCode,
 		payload: payload
+	});
+}
+
+function logHttpRequestError(req, err) {
+	console.error('[realtime] request failed', {
+		...buildHttpContext(req),
+		error: serializeError(err)
 	});
 }
 
@@ -809,6 +832,7 @@ function logWsFrameSent(ws, frame) {
 module.exports = {
 	logHttpRequestReceived,
 	logHttpResponseSent,
+	logHttpRequestError,
 	logWsFrameReceived,
 	logWsFrameSent
 };

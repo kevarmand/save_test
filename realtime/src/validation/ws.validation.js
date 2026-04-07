@@ -70,13 +70,11 @@ function validateOptionalCursor(value) {
 function validateOptionalNotificationCursor(value) {
 	if (value === undefined)
 		return undefined;
-	if (typeof value !== 'string' || value.trim() === '') {
-		throw new AppError(
-			ERROR_CODES.INVALID_ARGUMENT,
-			'cursor must be a non-empty string'
-		);
-	}
-	return value;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
 }
 
 function validateOptionalMessageId(value, fieldName) {

@@ -31,8 +31,8 @@ async function postJson(path, payload, operation, details) {
 	try {
 		response = await request({
 			protocol: 'https:',
-			hostname: env.clients.notification.host,
-			port: env.clients.notification.port,
+			hostname: env.clients.notifications.host,
+			port: env.clients.notifications.port,
 			path: path,
 			method: 'POST',
 			agent: agent,
@@ -46,11 +46,11 @@ async function postJson(path, payload, operation, details) {
 	catch (err) {
 		throw new AppError(
 			ERROR_CODES.INTERNAL_ERROR,
-			'notification service error',
+			'notifications service error',
 			{
 				cause: err,
 				details: {
-					service: 'notification',
+					service: 'notifications',
 					operation: operation,
 					...details
 				}
@@ -60,10 +60,10 @@ async function postJson(path, payload, operation, details) {
 	if (response.statusCode < 200 || response.statusCode >= 300) {
 		throw new AppError(
 			ERROR_CODES.INTERNAL_ERROR,
-			'notification service error',
+			'notifications service error',
 			{
 				details: {
-					service: 'notification',
+					service: 'notifications',
 					operation: operation,
 					upstreamStatusCode: response.statusCode,
 					responseBody: response.body,

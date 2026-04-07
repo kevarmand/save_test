@@ -59,8 +59,8 @@ services:
       REALTIME_SERVICE_HOST: realtime
       REALTIME_SERVICE_PORT: 7443
 
-      NOTIFICATION_SERVICE_HOST: notifications
-      NOTIFICATION_SERVICE_PORT: 7000
+      NOTIFICATIONS_SERVICE_HOST: notifications
+      NOTIFICATIONS_SERVICE_PORT: 7000
 
       DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm
       DB_SSL_CA_PATH: /app/certs/ca.crt
@@ -113,6 +113,74 @@ services:
       - dm_net
     command: sh -c "npm install && npm run dev"
 
+  notifications-db:
+    build:
+      context: ./notifications-db
+    container_name: notifications-db
+    environment:
+      POSTGRES_DB: notifications
+      POSTGRES_USER: notifications
+      POSTGRES_PASSWORD: change-me-bootstrap-password
+    volumes:
+      - notifications_postgres_data:/var/lib/postgresql
+    networks:
+      - dm_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifications -d notifications"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres/certs/notifications-db.crt
+      - -c
+      - ssl_key_file=/etc/postgres/certs/notifications-db.key
+      - -c
+      - ssl_ca_file=/etc/postgres/certs/ca.crt
+      - -c
+      - hba_file=/etc/postgres/pg_hba.conf
+
+  notifications:
+    build:
+      context: ./notifications
+    container_name: notifications-app
+    depends_on:
+      notifications-db:
+        condition: service_healthy
+    ports:
+      - "7200:7000"
+    working_dir: /app
+    volumes:
+      - ./notifications:/app
+      - notifications_node_modules:/app/node_modules
+    environment:
+      SERVICE_NAME: notifications
+      HOST: 0.0.0.0
+      PORT: 7000
+
+      SSL_CERT_PATH: /app/certs/notifications.crt
+      SSL_KEY_PATH: /app/certs/notifications.key
+      SSL_CA_PATH: /app/certs/ca.crt
+
+      REALTIME_SERVICE_HOST: realtime
+      REALTIME_SERVICE_PORT: 7443
+
+      DATABASE_URL_RUNTIME: postgresql://notifications@notifications-db:5432/notifications
+      DB_SSL_CA_PATH: /app/certs/ca.crt
+      DB_SSL_CERT_PATH: /app/certs/notifications.crt
+      DB_SSL_KEY_PATH: /app/certs/notifications.key
+
+      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+
+      PRISMA_DATABASE_URL: postgresql://notifications@notifications-db:5432/notifications?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/notifications.p12&sslaccept=strict
+    networks:
+      - dm_net
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+
+
   ws-test:
     image: node:20-alpine
     container_name: ws-test
@@ -138,6 +206,7 @@ volumes:
   dm_postgres_data:
   dm_node_modules:
   realtime_node_modules:
-
+  notifications_postgres_data:
+  notifications_node_modules:
 networks:
   dm_net:

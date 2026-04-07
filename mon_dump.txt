@@ -1,0 +1,4758 @@
+===== TREE =====
+compose.yaml  [error opening dir]
+
+0 directories, 0 files
+
+dm
+├── Dockerfile
+├── package.json
+├── prisma
+│   └── schema.prisma
+├── prisma.config.ts
+└── src
+    ├── app.js
+    ├── clients
+    │   ├── https.agent.js
+    │   ├── https.request.js
+    │   ├── notifications.client.js
+    │   ├── realtime.client.js
+    │   ├── social.client.js
+    │   └── user.client.js
+    ├── config
+    │   ├── env.js
+    │   └── tls.js
+    ├── controllers
+    │   └── dm.controller.js
+    ├── db
+    │   └── prisma.js
+    ├── errors
+    │   ├── AppError.js
+    │   ├── errorCodes.js
+    │   ├── errorHandler.js
+    │   └── notFound.js
+    ├── log
+    │   └── logger.js
+    ├── middlewares
+    │   ├── httpLogger.js
+    │   └── requireCaller.js
+    ├── repositories
+    │   └── dm.repository.js
+    ├── routes
+    │   └── dm.routes.js
+    ├── server.js
+    ├── services
+    │   └── dm.service.js
+    └── validation
+        └── dm.validation.js
+
+13 directories, 27 files
+
+dm-db
+├── Dockerfile
+├── init
+└── pg_hba.conf
+
+1 directory, 2 files
+
+notifications
+├── Dockerfile
+├── package.json
+├── prisma
+│   └── schema.prisma
+├── prisma.config.ts
+└── src
+    ├── app.js
+    ├── clients
+    │   ├── https.agent.js
+    │   ├── https.request.js
+    │   └── realtime.client.js
+    ├── config
+    │   ├── env.js
+    │   └── tls.js
+    ├── controllers
+    │   ├── internal.controller.js
+    │   └── notifications.controller.js
+    ├── db
+    │   └── prisma.js
+    ├── errors
+    │   ├── AppError.js
+    │   ├── errorCodes.js
+    │   ├── errorHandler.js
+    │   └── notFound.js
+    ├── log
+    │   └── logger.js
+    ├── middlewares
+    │   ├── httpLogger.js
+    │   └── requireCaller.js
+    ├── repositories
+    │   └── notifications.repository.js
+    ├── routes
+    │   ├── internal.routes.js
+    │   └── notifications.routes.js
+    ├── server.js
+    ├── services
+    │   └── notifications.service.js
+    └── validation
+        ├── internal.validation.js
+        └── notifications.validation.js
+
+13 directories, 27 files
+
+notifications-db
+├── Dockerfile
+├── init
+└── pg_hba.conf
+
+1 directory, 2 files
+
+realtime
+├── Dockerfile
+├── package.json
+└── src
+    ├── apps
+    │   ├── front.app.js
+    │   └── internal.app.js
+    ├── clients
+    │   ├── dm.client.js
+    │   ├── https.agent.js
+    │   ├── https.request.js
+    │   └── notifications.client.js
+    ├── config
+    │   ├── env.js
+    │   └── tls.js
+    ├── controllers
+    │   └── push.controller.js
+    ├── errors
+    │   ├── AppError.js
+    │   ├── errorCodes.js
+    │   ├── errorHandler.js
+    │   └── notFound.js
+    ├── log
+    │   └── logger.js
+    ├── middlewares
+    │   ├── httpLogger.js
+    │   └── internalClientAuth.js
+    ├── routes
+    │   └── internal.routes.js
+    ├── server.js
+    ├── servers
+    │   ├── front.server.js
+    │   └── internal.server.js
+    ├── services
+    │   ├── auth.service.js
+    │   ├── dispatch.service.js
+    │   ├── push.service.js
+    │   └── registry.service.js
+    ├── validation
+    │   ├── push.validation.js
+    │   └── ws.validation.js
+    └── ws
+        ├── attachWebSocketServer.js
+        ├── message.handler.js
+        └── send.js
+
+13 directories, 31 files
+
+ws-test
+├── connect.sh
+├── Dockerfile
+├── gen-auth-frame.js
+├── gen-token.js
+└── package.json
+
+0 directories, 5 files
+
+===== FILE: compose.yaml =====
+services:
+  dm-db:
+    build:
+      context: ./dm-db
+    container_name: dm-db
+    environment:
+      POSTGRES_DB: dm
+      POSTGRES_USER: dm
+      POSTGRES_PASSWORD: change-me-bootstrap-password
+    volumes:
+      - dm_postgres_data:/var/lib/postgresql
+    networks:
+      - dm_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dm -d dm"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres/certs/dm-db.crt
+      - -c
+      - ssl_key_file=/etc/postgres/certs/dm-db.key
+      - -c
+      - ssl_ca_file=/etc/postgres/certs/ca.crt
+      - -c
+      - hba_file=/etc/postgres/pg_hba.conf
+
+  dm:
+    build:
+      context: ./dm
+    container_name: dm-app
+    depends_on:
+      dm-db:
+        condition: service_healthy
+    ports:
+      - "7000:7000"
+    working_dir: /app
+    volumes:
+      - ./dm:/app
+      - dm_node_modules:/app/node_modules
+    environment:
+      SERVICE_NAME: dm
+      HOST: 0.0.0.0
+      PORT: 7000
+
+      SSL_CERT_PATH: /app/certs/dm.crt
+      SSL_KEY_PATH: /app/certs/dm.key
+      SSL_CA_PATH: /app/certs/ca.crt
+
+      USER_SERVICE_HOST: user
+      USER_SERVICE_PORT: 7000
+      SOCIAL_SERVICE_HOST: social
+      SOCIAL_SERVICE_PORT: 7000
+
+      REALTIME_SERVICE_HOST: realtime
+      REALTIME_SERVICE_PORT: 7443
+
+      NOTIFICATIONS_SERVICE_HOST: notifications
+      NOTIFICATIONS_SERVICE_PORT: 7000
+
+      DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm
+      DB_SSL_CA_PATH: /app/certs/ca.crt
+      DB_SSL_CERT_PATH: /app/certs/dm.crt
+      DB_SSL_KEY_PATH: /app/certs/dm.key
+
+      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+
+      PRISMA_DATABASE_URL: postgresql://dm@dm-db:5432/dm?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/dm.p12&sslaccept=strict
+    networks:
+      - dm_net
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+
+  realtime:
+    build:
+      context: ./realtime
+    container_name: realtime-app
+    working_dir: /app
+    volumes:
+      - ./realtime:/app
+      - realtime_node_modules:/app/node_modules
+    environment:
+      SERVICE_NAME: realtime
+
+      HOST: 0.0.0.0
+      PORT: 7100
+
+      INTERNAL_HOST: 0.0.0.0
+      INTERNAL_PORT: 7443
+      INTERNAL_ALLOWED_CLIENT_CNS: dm,notifications
+
+      SSL_CERT_PATH: /app/certs/realtime.crt
+      SSL_KEY_PATH: /app/certs/realtime.key
+      SSL_CA_PATH: /app/certs/ca.crt
+
+      DM_SERVICE_HOST: dm
+      DM_SERVICE_PORT: 7000
+
+      NOTIFICATIONS_SERVICE_HOST: notifications
+      NOTIFICATIONS_SERVICE_PORT: 7000
+
+      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+
+      WS_PATH: /ws
+      WS_TOKEN_SECRET: change-me-ws-secret
+      WS_AUTH_TIMEOUT_MS: 5000
+      WS_HEARTBEAT_INTERVAL_MS: 30000
+      WS_MAX_PAYLOAD_BYTES: 65536
+    networks:
+      - dm_net
+    command: sh -c "npm install && npm run dev"
+
+  notifications-db:
+    build:
+      context: ./notifications-db
+    container_name: notifications-db
+    environment:
+      POSTGRES_DB: notifications
+      POSTGRES_USER: notifications
+      POSTGRES_PASSWORD: change-me-bootstrap-password
+    volumes:
+      - notifications_postgres_data:/var/lib/postgresql
+    networks:
+      - dm_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U notifications -d notifications"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres/certs/notifications-db.crt
+      - -c
+      - ssl_key_file=/etc/postgres/certs/notifications-db.key
+      - -c
+      - ssl_ca_file=/etc/postgres/certs/ca.crt
+      - -c
+      - hba_file=/etc/postgres/pg_hba.conf
+
+  notifications:
+    build:
+      context: ./notifications
+    container_name: notifications-app
+    depends_on:
+      notifications-db:
+        condition: service_healthy
+    ports:
+      - "7200:7000"
+    working_dir: /app
+    volumes:
+      - ./notifications:/app
+      - notifications_node_modules:/app/node_modules
+    environment:
+      SERVICE_NAME: notifications
+      HOST: 0.0.0.0
+      PORT: 7000
+
+      SSL_CERT_PATH: /app/certs/notifications.crt
+      SSL_KEY_PATH: /app/certs/notifications.key
+      SSL_CA_PATH: /app/certs/ca.crt
+
+      REALTIME_SERVICE_HOST: realtime
+      REALTIME_SERVICE_PORT: 7443
+
+      DATABASE_URL_RUNTIME: postgresql://notifications@notifications-db:5432/notifications
+      DB_SSL_CA_PATH: /app/certs/ca.crt
+      DB_SSL_CERT_PATH: /app/certs/notifications.crt
+      DB_SSL_KEY_PATH: /app/certs/notifications.key
+
+      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+
+      PRISMA_DATABASE_URL: postgresql://notifications@notifications-db:5432/notifications?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/notifications.p12&sslaccept=strict
+    networks:
+      - dm_net
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+
+
+  ws-test:
+    image: node:20-alpine
+    container_name: ws-test
+    depends_on:
+      realtime:
+        condition: service_started
+    working_dir: /work
+    environment:
+      ENV: /work/.shrc
+      WS_URL: wss://realtime:7100/ws
+      WS_CA_PATH: /certs/ca.crt
+      WS_TOKEN_SECRET: change-me-ws-secret
+      WS_TEST_USER_ID: 019d3641-b111-7cc2-98c4-dc0c0f4a1111
+      WS_TOKEN_TTL_SECONDS: 315360000
+    volumes:
+      - ./ws-test:/work
+      - ./realtime/certs:/certs:ro
+    networks:
+      - dm_net
+    command: sh -c "npm install -g wscat && tail -f /dev/null"
+
+volumes:
+  dm_postgres_data:
+  dm_node_modules:
+  realtime_node_modules:
+  notifications_postgres_data:
+  notifications_node_modules:
+networks:
+  dm_net:
+===== FILE: dm/Dockerfile =====
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY src ./src
+COPY certs ./certs
+
+CMD ["npm", "run", "dev"]
+===== FILE: dm/package.json =====
+{
+  "name": "test_docker",
+  "version": "1.0.0",
+  "description": "Simple express server in docker",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "pg": "^8.20.0",
+    "prisma": "^7.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+
+===== FILE: dm/prisma/schema.prisma =====
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Conversation {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  userLowId             String    @db.Uuid
+  userHighId            String    @db.Uuid
+  createdAt             DateTime  @default(now())
+
+  lastReadLowMessageId  String?   @db.Uuid
+  lastReadHighMessageId String?   @db.Uuid
+
+  messages              Message[] @relation("ConversationMessages")
+  lastReadLowMessage    Message?  @relation("ConversationLastReadLowMessage", fields: [lastReadLowMessageId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  lastReadHighMessage   Message?  @relation("ConversationLastReadHighMessage", fields: [lastReadHighMessageId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([userLowId, userHighId])
+  @@index([userLowId])
+  @@index([userHighId])
+}
+
+model Message {
+  id                         String         @id @default(uuid(7)) @db.Uuid
+  conversationId             String         @db.Uuid
+  authorId                   String         @db.Uuid
+  content                    String
+  clientMessageId            String         @db.Uuid
+  createdAt                  DateTime       @default(now())
+
+  conversation               Conversation   @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  conversationsAsLastReadLow Conversation[] @relation("ConversationLastReadLowMessage")
+  conversationsAsLastReadHigh Conversation[] @relation("ConversationLastReadHighMessage")
+
+  @@unique([conversationId, authorId, clientMessageId])
+  @@index([conversationId, id])
+}
+===== FILE: dm/prisma.config.ts =====
+import "dotenv/config";
+import { defineConfig, env } from "prisma/config";
+
+export default defineConfig({
+	schema: "prisma/schema.prisma",
+	datasource: {
+		url: env("PRISMA_DATABASE_URL")
+	}
+});
+===== FILE: dm/src/app.js =====
+const express = require('express');
+const dmRoutes = require('./routes/dm.routes');
+const notFound = require('./errors/notFound');
+const errorHandler = require('./errors/errorHandler');
+const {requireCaller} = require('./middlewares/requireCaller');
+const httpLogger = require('./middlewares/httpLogger');
+
+function attachTlsContext(req, res, next) {
+	req.tls = {
+		authorized: req.client.authorized,
+		authorizationError: req.client.authorizationError,
+		peerCertificate: req.socket.getPeerCertificate()
+	};
+	next();
+}
+
+function createApp() {
+	const app = express();
+
+	app.use(attachTlsContext);
+	app.use(httpLogger);
+	app.use('/dm', requireCaller('realtime'), express.json(), dmRoutes);
+	app.use(notFound);
+	app.use(errorHandler);
+
+	return app;
+}
+
+module.exports = createApp;
+===== FILE: dm/src/server.js =====
+const https = require('https');
+const env = require('./config/env');
+const {buildServerTlsOptions} = require('./config/tls');
+const createApp = require('./app');
+
+function getPeerCommonName(socket) {
+	const certificate = socket.getPeerCertificate();
+
+	if (!certificate || typeof certificate !== 'object')
+		return undefined;
+	if (!certificate.subject || typeof certificate.subject.CN !== 'string')
+		return undefined;
+	if (certificate.subject.CN.trim() === '')
+		return undefined;
+	return certificate.subject.CN.trim();
+}
+
+function installTlsDebug(server) {
+	server.on('secureConnection', (socket) => {
+		console.log('[dm] tls secure connection', {
+			remoteAddress: socket.remoteAddress,
+			authorized: socket.authorized,
+			authorizationError: socket.authorizationError,
+			clientCn: getPeerCommonName(socket)
+		});
+	});
+	server.on('tlsClientError', (err, socket) => {
+		console.error('[dm] tls client error', {
+			message: err.message,
+			code: err.code,
+			remoteAddress: socket.remoteAddress
+		});
+	});
+}
+
+function main() {
+	const app = createApp();
+	const server = https.createServer(buildServerTlsOptions(), app);
+
+	installTlsDebug(server);
+	server.listen(env.http.port, env.http.host, () => {
+		console.log(
+			'[' + env.service.name + '] listening on https://'
+			+ env.http.host + ':' + env.http.port
+		);
+	});
+}
+
+main();
+===== FILE: dm/src/config/env.js =====
+const dotenv = require('dotenv');
+
+dotenv.config({ quiet: true });
+
+function requireEnv(name) {
+	const value = process.env[name];
+
+	if (!value)
+		throw new Error('Missing required environment variable: ' + name);
+	return value;
+}
+
+function requireNumberEnv(name) {
+	const value = Number(requireEnv(name));
+
+	if (Number.isNaN(value))
+		throw new Error('Environment variable must be a number: ' + name);
+	return value;
+}
+
+const env = {
+	service: {
+		name: requireEnv('SERVICE_NAME')
+	},
+	http: {
+		host: requireEnv('HOST'),
+		port: requireNumberEnv('PORT')
+	},
+	timeouts: {
+		upstreamRequestMs: requireNumberEnv('UPSTREAM_REQUEST_TIMEOUT_MS')
+	},
+	tls: {
+		certPath: requireEnv('SSL_CERT_PATH'),
+		keyPath: requireEnv('SSL_KEY_PATH'),
+		caPath: requireEnv('SSL_CA_PATH')
+	},
+	db: {
+		url: requireEnv('DATABASE_URL_RUNTIME'),
+		tls: {
+			caPath: requireEnv('DB_SSL_CA_PATH'),
+			certPath: requireEnv('DB_SSL_CERT_PATH'),
+			keyPath: requireEnv('DB_SSL_KEY_PATH')
+		}
+	},
+	clients: {
+		user: {
+			host: requireEnv('USER_SERVICE_HOST'),
+			port: requireNumberEnv('USER_SERVICE_PORT')
+		},
+		social: {
+			host: requireEnv('SOCIAL_SERVICE_HOST'),
+			port: requireNumberEnv('SOCIAL_SERVICE_PORT')
+		},
+		realtime: {
+			host: requireEnv('REALTIME_SERVICE_HOST'),
+			port: requireNumberEnv('REALTIME_SERVICE_PORT')
+		},
+		notifications: {
+			host: requireEnv('NOTIFICATIONS_SERVICE_HOST'),
+			port: requireNumberEnv('NOTIFICATIONS_SERVICE_PORT')
+		}
+	}
+};
+
+module.exports = env;
+===== FILE: dm/src/config/tls.js =====
+const fs = require('fs');
+const env = require('./env');
+
+function readFile(path) {
+	return fs.readFileSync(path);
+}
+
+function buildServerTlsOptions() {
+	return {
+		cert: fs.readFileSync(env.tls.certPath),
+		key: fs.readFileSync(env.tls.keyPath),
+		ca: fs.readFileSync(env.tls.caPath),
+		requestCert: true,
+		rejectUnauthorized: true
+	};
+}
+
+function buildClientTlsOptions() {
+	return {
+		cert: fs.readFileSync(env.tls.certPath),
+		key: fs.readFileSync(env.tls.keyPath),
+		ca: fs.readFileSync(env.tls.caPath),
+		rejectUnauthorized: true
+	};
+}
+
+function buildDbTlsOptions() {
+	return {
+		ca: readFile(env.db.tls.caPath),
+		cert: readFile(env.db.tls.certPath),
+		key: readFile(env.db.tls.keyPath),
+		rejectUnauthorized: true
+	};
+}
+
+module.exports = {
+	buildServerTlsOptions,
+	buildClientTlsOptions,
+	buildDbTlsOptions
+};
+===== FILE: dm/src/db/prisma.js =====
+const {PrismaClient} = require('@prisma/client');
+const {PrismaPg} = require('@prisma/adapter-pg');
+const {Pool} = require('pg');
+const env = require('../config/env');
+const {buildDbTlsOptions} = require('../config/tls');
+
+const pool = new Pool({
+	connectionString: env.db.url,
+	ssl: buildDbTlsOptions()
+});
+
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({adapter});
+
+module.exports = prisma;
+===== FILE: dm/src/middlewares/requireCaller.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function getCallerCommonName(req) {
+	const certificate = req.tls && req.tls.peerCertificate;
+
+	if (!certificate || !certificate.subject)
+		return undefined;
+	return certificate.subject.CN;
+}
+
+function requireCaller(expectedCommonName) {
+	return (req, res, next) => {
+		const caller = getCallerCommonName(req);
+
+		if (!req.tls || req.tls.authorized !== true
+			|| caller !== expectedCommonName) {
+			return next(new AppError(
+				ERROR_CODES.UNAUTHORIZED_CALLER,
+				'unauthorized caller'
+			));
+		}
+		return next();
+	};
+}
+
+module.exports = {
+	requireCaller
+};
+===== FILE: dm/src/routes/dm.routes.js =====
+const express = require('express');
+const {
+	createMessageByUser,
+	listMessagesByUser,
+	markConversationReadByUser,
+	listConversations
+} = require('../controllers/dm.controller');
+
+const router = express.Router();
+
+router.get('/conversations', listConversations);
+router.post('/users/:otherUserId/messages', createMessageByUser);
+router.get('/users/:otherUserId/messages', listMessagesByUser);
+router.post('/users/:otherUserId/read', markConversationReadByUser);
+
+module.exports = router;
+===== FILE: dm/src/controllers/dm.controller.js =====
+const {
+	validateCreateMessage,
+	validateListMessages,
+	validateMarkConversationRead,
+	validateListConversations
+} = require('../validation/dm.validation');
+const dmService = require('../services/dm.service');
+
+function buildCreateMessageCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		otherUserId: req.params.otherUserId,
+		content: req.body.content,
+		clientMessageId: req.body.clientMsgId
+	};
+}
+
+function buildListMessagesCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		otherUserId: req.params.otherUserId,
+		limit: req.query.limit,
+		beforeMessageId: req.query.beforeMessageId
+	};
+}
+
+function buildMarkConversationReadCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		otherUserId: req.params.otherUserId,
+		messageId: req.body.messageId
+	};
+}
+
+function buildListConversationsCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		limit: req.query.limit,
+		cursor: req.query.cursor
+	};
+}
+
+function mapMessageResponse(message) {
+	return {
+		messageId: message.messageId,
+		senderId: message.senderId,
+		content: message.content,
+		clientMsgId: message.clientMessageId,
+		createdAt: message.createdAt
+	};
+}
+
+function buildCreateMessageResponse(message) {
+	return {
+		messageId: message.messageId,
+		otherUserId: message.otherUserId,
+		senderId: message.senderId,
+		content: message.content,
+		clientMsgId: message.clientMessageId,
+		createdAt: message.createdAt
+	};
+}
+
+function buildListMessagesResponse(result) {
+	return {
+		otherUserId: result.otherUserId,
+		messages: result.messages.map(mapMessageResponse),
+		page: {
+			limit: result.limit,
+			hasMore: result.hasMore,
+			nextBeforeMessageId: result.nextBeforeMessageId
+		}
+	};
+}
+
+function buildMarkConversationReadResponse(result) {
+	return {
+		otherUserId: result.otherUserId,
+		readUpToMessageId: result.readUpToMessageId
+	};
+}
+
+function buildConversationResponse(conversation) {
+	return {
+		otherUserId: conversation.otherUserId,
+		lastReadMessageId: conversation.lastReadMessageId,
+		hasUnread: conversation.hasUnread,
+		lastMessage: conversation.lastMessage
+			? mapMessageResponse(conversation.lastMessage)
+			: null
+	};
+}
+
+function buildListConversationsResponse(result) {
+	return {
+		conversations: result.conversations.map(buildConversationResponse),
+		page: {
+			limit: result.limit,
+			hasMore: result.hasMore,
+			nextCursor: result.nextCursor
+		}
+	};
+}
+
+async function createMessageByUser(req, res, next) {
+	let command;
+	let message;
+
+	try {
+		command = validateCreateMessage(buildCreateMessageCommand(req));
+		message = await dmService.createMessage(command);
+		return res.status(201).json(buildCreateMessageResponse(message));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+async function listMessagesByUser(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateListMessages(buildListMessagesCommand(req));
+		result = await dmService.listMessages(command);
+		return res.status(200).json(buildListMessagesResponse(result));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+async function markConversationReadByUser(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateMarkConversationRead(
+			buildMarkConversationReadCommand(req)
+		);
+		result = await dmService.markConversationRead(command);
+		return res.status(200).json(buildMarkConversationReadResponse(result));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+async function listConversations(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateListConversations(buildListConversationsCommand(req));
+		result = await dmService.listConversations(command);
+		return res.status(200).json(buildListConversationsResponse(result));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+module.exports = {
+	createMessageByUser,
+	listMessagesByUser,
+	markConversationReadByUser,
+	listConversations
+};
+===== FILE: dm/src/services/dm.service.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const dmRepository = require('../repositories/dm.repository');
+const realtimeClient = require('../clients/realtime.client');
+const notificationsClient = require('../clients/notifications.client');
+// const userClient = require('../clients/user.client');
+// const socialClient = require('../clients/social.client');
+
+function assertDifferentUsers(senderId, otherUserId)
+{
+	if (senderId === otherUserId)
+	{
+		throw new AppError(
+			ERROR_CODES.FORBIDDEN,
+			'cannot use DM endpoints with yourself'
+		);
+	}
+}
+
+async function validateCreateMessageDependencies(command)
+{
+	// Réactiver ces vérifications quand les services user/social
+	// seront disponibles sur cette branche.
+	//
+	// await userClient.ensureUserExists(command.otherUserId);
+	// await socialClient.ensureUsersAreFriends(
+	// 	command.senderId,
+	// 	command.otherUserId
+	// );
+}
+
+async function createMessage(command)
+{
+	let result;
+
+	assertDifferentUsers(command.senderId, command.otherUserId);
+	await validateCreateMessageDependencies(command);
+	result = await dmRepository.createMessage({
+		senderId: command.senderId,
+		otherUserId: command.otherUserId,
+		content: command.content,
+		clientMessageId: command.clientMessageId
+	});
+	if (result.created)
+	{
+		await realtimeClient.pushDmMessage(result.message);
+		await notificationsClient.createDmMessageNotification(result.message);
+	}
+	return result.message;
+}
+
+async function listMessages(command)
+{
+	let result;
+
+	assertDifferentUsers(command.senderId, command.otherUserId);
+	result = await dmRepository.listMessages({
+		senderId: command.senderId,
+		otherUserId: command.otherUserId,
+		limit: command.limit,
+		beforeMessageId: command.beforeMessageId
+	});
+	if (result.error === 'before_message_not_found')
+	{
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'beforeMessageId not found in this conversation'
+		);
+	}
+	return result;
+}
+
+async function markConversationRead(command)
+{
+	let result;
+
+	assertDifferentUsers(command.senderId, command.otherUserId);
+	result = await dmRepository.markConversationRead({
+		senderId: command.senderId,
+		otherUserId: command.otherUserId,
+		messageId: command.messageId
+	});
+	if (result.error === 'conversation_not_found')
+	{
+		throw new AppError(
+			ERROR_CODES.NOT_FOUND,
+			'conversation not found'
+		);
+	}
+	if (result.error === 'message_not_found')
+	{
+		throw new AppError(
+			ERROR_CODES.NOT_FOUND,
+			'message not found in this conversation'
+		);
+	}
+	await notificationsClient.markDmConversationRead({
+		senderId: command.senderId,
+		otherUserId: result.otherUserId,
+		readUpToMessageId: result.readUpToMessageId
+	});
+	return result;
+}
+
+async function listConversations(command)
+{
+	return dmRepository.listConversations({
+		senderId: command.senderId,
+		limit: command.limit,
+		cursor: command.cursor
+	});
+}
+
+module.exports = {
+	createMessage,
+	listMessages,
+	markConversationRead,
+	listConversations
+};
+===== FILE: dm/src/repositories/dm.repository.js =====
+const prisma = require('../db/prisma');
+
+function orderUsers(senderId, otherUserId) {
+	if (senderId < otherUserId) {
+		return {
+			userLowId: senderId,
+			userHighId: otherUserId
+		};
+	}
+	return {
+		userLowId: otherUserId,
+		userHighId: senderId
+	};
+}
+
+function getOtherUserId(users, senderId) {
+	if (senderId === users.userLowId)
+		return users.userHighId;
+	return users.userLowId;
+}
+
+function buildSenderReadUpdate(senderId, users, messageId) {
+	if (senderId === users.userLowId) {
+		return {
+			lastReadLowMessageId: messageId
+		};
+	}
+	return {
+		lastReadHighMessageId: messageId
+	};
+}
+
+function getSenderReadMessageId(conversation, senderId) {
+	if (senderId === conversation.userLowId)
+		return conversation.lastReadLowMessageId;
+	return conversation.lastReadHighMessageId;
+}
+
+function mapMessage(message, users, senderId) {
+	return {
+		messageId: message.id,
+		otherUserId: getOtherUserId(users, senderId),
+		senderId: message.authorId,
+		content: message.content,
+		clientMessageId: message.clientMessageId,
+		createdAt: message.createdAt
+	};
+}
+
+function mapConversation(conversation, senderId) {
+	const lastMessage = conversation.messages[0] || null;
+	const users = {
+		userLowId: conversation.userLowId,
+		userHighId: conversation.userHighId
+	};
+	const lastReadMessageId = getSenderReadMessageId(conversation, senderId);
+
+	return {
+		otherUserId: getOtherUserId(users, senderId),
+		lastReadMessageId: lastReadMessageId,
+		hasUnread: !lastMessage
+			? false
+			: !lastReadMessageId || lastReadMessageId < lastMessage.id,
+		lastMessage: lastMessage
+			? mapMessage(lastMessage, users, senderId)
+			: null
+	};
+}
+
+function isUniqueConstraintError(err) {
+	return err && err.code === 'P2002';
+}
+
+function buildCreateMessageResult(message, users, senderId, created) {
+	return {
+		created: created,
+		message: mapMessage(message, users, senderId)
+	};
+}
+
+async function findConversationByUsers(users) {
+	return prisma.conversation.findUnique({
+		where: {
+			userLowId_userHighId: {
+				userLowId: users.userLowId,
+				userHighId: users.userHighId
+			}
+		}
+	});
+}
+
+async function findExistingMessage(data, users) {
+	return prisma.message.findFirst({
+		where: {
+			authorId: data.senderId,
+			clientMessageId: data.clientMessageId,
+			conversation: {
+				userLowId: users.userLowId,
+				userHighId: users.userHighId
+			}
+		}
+	});
+}
+
+async function createMessageInTransaction(data, users) {
+	return prisma.$transaction(async (tx) => {
+		let conversation;
+		let message;
+
+		conversation = await tx.conversation.upsert({
+			where: {
+				userLowId_userHighId: {
+					userLowId: users.userLowId,
+					userHighId: users.userHighId
+				}
+			},
+			update: {},
+			create: {
+				userLowId: users.userLowId,
+				userHighId: users.userHighId
+			}
+		});
+		message = await tx.message.create({
+			data: {
+				conversationId: conversation.id,
+				authorId: data.senderId,
+				content: data.content,
+				clientMessageId: data.clientMessageId
+			}
+		});
+		await tx.conversation.update({
+			where: {
+				id: conversation.id
+			},
+			data: buildSenderReadUpdate(data.senderId, users, message.id)
+		});
+		return buildCreateMessageResult(message, users, data.senderId, true);
+	});
+}
+
+async function createMessage(data) {
+	const users = orderUsers(data.senderId, data.otherUserId);
+
+	try {
+		return await createMessageInTransaction(data, users);
+	}
+	catch (err) {
+		let message;
+
+		if (!isUniqueConstraintError(err))
+			throw err;
+		message = await findExistingMessage(data, users);
+		if (message)
+			return buildCreateMessageResult(message, users, data.senderId, false);
+		throw err;
+	}
+}
+
+async function listMessages(data) {
+	const users = orderUsers(data.senderId, data.otherUserId);
+	const conversation = await findConversationByUsers(users);
+	let messages;
+	let hasMore;
+	let nextBeforeMessageId;
+
+	if (!conversation) {
+		return {
+			otherUserId: data.otherUserId,
+			messages: [],
+			limit: data.limit,
+			hasMore: false,
+			nextBeforeMessageId: null
+		};
+	}
+	if (data.beforeMessageId) {
+		const beforeMessage = await prisma.message.findFirst({
+			where: {
+				id: data.beforeMessageId,
+				conversationId: conversation.id
+			},
+			select: {
+				id: true
+			}
+		});
+
+		if (!beforeMessage) {
+			return {
+				error: 'before_message_not_found'
+			};
+		}
+	}
+	messages = await prisma.message.findMany({
+		where: {
+			conversationId: conversation.id,
+			...(data.beforeMessageId
+				? {
+					id: {
+						lt: data.beforeMessageId
+					}
+				}
+				: {})
+		},
+		orderBy: {
+			id: 'desc'
+		},
+		take: data.limit + 1
+	});
+	hasMore = messages.length > data.limit;
+	if (hasMore)
+		messages.pop();
+	messages.reverse();
+	nextBeforeMessageId = hasMore && messages.length > 0
+		? messages[0].id
+		: null;
+	return {
+		otherUserId: data.otherUserId,
+		messages: messages.map((message) => {
+			return mapMessage(message, users, data.senderId);
+		}),
+		limit: data.limit,
+		hasMore: hasMore,
+		nextBeforeMessageId: nextBeforeMessageId
+	};
+}
+
+async function markConversationRead(data) {
+	const users = orderUsers(data.senderId, data.otherUserId);
+	const conversation = await findConversationByUsers(users);
+	const currentReadMessageId = conversation
+		? getSenderReadMessageId(conversation, data.senderId)
+		: null;
+	const readUpToMessageId = currentReadMessageId
+		&& currentReadMessageId >= data.messageId
+		? currentReadMessageId
+		: data.messageId;
+
+	if (!conversation) {
+		return {
+			error: 'conversation_not_found'
+		};
+	}
+	const targetMessage = await prisma.message.findFirst({
+		where: {
+			id: data.messageId,
+			conversationId: conversation.id
+		},
+		select: {
+			id: true
+		}
+	});
+
+	if (!targetMessage) {
+		return {
+			error: 'message_not_found'
+		};
+	}
+	if (currentReadMessageId && currentReadMessageId >= targetMessage.id) {
+		return {
+			otherUserId: data.otherUserId,
+			readUpToMessageId: currentReadMessageId
+		};
+	}
+	await prisma.conversation.update({
+		where: {
+			id: conversation.id
+		},
+		data: buildSenderReadUpdate(data.senderId, users, readUpToMessageId)
+	});
+	return {
+		otherUserId: data.otherUserId,
+		readUpToMessageId: readUpToMessageId
+	};
+}
+
+async function listConversations(data) {
+	let conversations;
+	let mapped;
+	let filtered;
+	let paged;
+	let hasMore;
+	let nextCursor;
+
+	conversations = await prisma.conversation.findMany({
+		where: {
+			OR: [
+				{
+					userLowId: data.senderId
+				},
+				{
+					userHighId: data.senderId
+				}
+			]
+		},
+		include: {
+			messages: {
+				orderBy: {
+					id: 'desc'
+				},
+				take: 1
+			}
+		}
+	});
+	mapped = conversations
+		.map((conversation) => {
+			return mapConversation(conversation, data.senderId);
+		})
+		.sort((left, right) => {
+			if (!left.lastMessage && !right.lastMessage)
+				return 0;
+			if (!left.lastMessage)
+				return 1;
+			if (!right.lastMessage)
+				return -1;
+			if (left.lastMessage.messageId < right.lastMessage.messageId)
+				return 1;
+			if (left.lastMessage.messageId > right.lastMessage.messageId)
+				return -1;
+			return 0;
+		});
+	filtered = data.cursor
+		? mapped.filter((conversation) => {
+			return conversation.lastMessage
+				&& conversation.lastMessage.messageId < data.cursor;
+		})
+		: mapped;
+	paged = filtered.slice(0, data.limit + 1);
+	hasMore = paged.length > data.limit;
+	if (hasMore)
+		paged.pop();
+	nextCursor = hasMore && paged.length > 0
+		? paged[paged.length - 1].lastMessage.messageId
+		: null;
+	return {
+		conversations: paged,
+		limit: data.limit,
+		hasMore: hasMore,
+		nextCursor: nextCursor
+	};
+}
+
+module.exports = {
+	createMessage,
+	listMessages,
+	markConversationRead,
+	listConversations
+};
+===== FILE: dm/src/validation/dm.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function parsePositiveInteger(value, fieldName) {
+	const parsed = Number(value);
+
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a positive integer'
+		);
+	}
+	return parsed;
+}
+
+function validateUuidField(value, fieldName, requiredMessage) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			requiredMessage
+		);
+	}
+	value = normalizeUuid(value);
+	if (!isUuidV7(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a valid UUIDv7'
+		);
+	}
+	return value;
+}
+
+function validateSenderId(value) {
+	return validateUuidField(value, 'X-User-Id', 'X-User-Id is required');
+}
+
+function validateOtherUserId(value) {
+	return validateUuidField(value, 'otherUserId', 'otherUserId is required');
+}
+
+function validateClientMessageId(value) {
+	return validateUuidField(
+		value,
+		'clientMsgId',
+		'clientMsgId is required'
+	);
+}
+
+function validateMessageId(value) {
+	return validateUuidField(
+		value,
+		'messageId',
+		'messageId is required'
+	);
+}
+
+function validateOptionalBeforeMessageId(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'beforeMessageId',
+		'beforeMessageId is required'
+	);
+}
+
+function validateOptionalCursor(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
+function validateContent(value) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'content is required'
+		);
+	}
+	return value;
+}
+
+function validateLimit(value) {
+	if (value === undefined)
+		return 30;
+	value = parsePositiveInteger(value, 'limit');
+	if (value > 100) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'limit must be less than or equal to 100'
+		);
+	}
+	return value;
+}
+
+function validateCreateMessage(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		otherUserId: validateOtherUserId(command.otherUserId),
+		content: validateContent(command.content),
+		clientMessageId: validateClientMessageId(command.clientMessageId)
+	};
+}
+
+function validateListMessages(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		otherUserId: validateOtherUserId(command.otherUserId),
+		limit: validateLimit(command.limit),
+		beforeMessageId: validateOptionalBeforeMessageId(
+			command.beforeMessageId
+		)
+	};
+}
+
+function validateMarkConversationRead(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		otherUserId: validateOtherUserId(command.otherUserId),
+		messageId: validateMessageId(command.messageId)
+	};
+}
+
+function validateListConversations(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		limit: validateLimit(command.limit),
+		cursor: validateOptionalCursor(command.cursor)
+	};
+}
+
+module.exports = {
+	validateCreateMessage,
+	validateListMessages,
+	validateMarkConversationRead,
+	validateListConversations
+};
+===== FILE: dm/src/clients/https.agent.js =====
+const https = require('https');
+const {buildClientTlsOptions} = require('../config/tls');
+
+const agent = new https.Agent(buildClientTlsOptions());
+
+module.exports = agent;
+===== FILE: dm/src/clients/https.request.js =====
+const https = require('https');
+const env = require('../config/env');
+
+function buildTimeoutError(timeoutMs) {
+	const err = new Error('upstream request timeout');
+
+	err.code = 'UPSTREAM_TIMEOUT';
+	err.timeoutMs = timeoutMs;
+	return err;
+}
+
+function request(options) {
+	return new Promise((resolve, reject) => {
+		let req;
+		let chunks;
+		const timeoutMs = options.timeoutMs || env.timeouts.upstreamRequestMs;
+		const requestOptions = {
+			protocol: options.protocol,
+			hostname: options.hostname,
+			port: options.port,
+			path: options.path,
+			method: options.method,
+			agent: options.agent,
+			headers: options.headers
+		};
+
+		chunks = '';
+		req = https.request(requestOptions, (res) => {
+			res.setEncoding('utf8');
+			res.on('data', (chunk) => {
+				chunks += chunk;
+			});
+			res.on('end', () => {
+				resolve({
+					statusCode: res.statusCode,
+					headers: res.headers,
+					body: chunks
+				});
+			});
+		});
+		req.setTimeout(timeoutMs, () => {
+			req.destroy(buildTimeoutError(timeoutMs));
+		});
+		req.on('error', reject);
+		if (options.body)
+			req.write(options.body);
+		req.end();
+	});
+}
+
+module.exports = request;
+===== FILE: dm/src/clients/realtime.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function buildPushPayload(message) {
+	return {
+		userIds: [message.otherUserId],
+		frame: {
+			type: 'dm.message.new',
+			data: {
+				otherUserId: message.senderId,
+				message: {
+					messageId: message.messageId,
+					senderId: message.senderId,
+					content: message.content,
+					clientMsgId: message.clientMessageId,
+					createdAt: message.createdAt
+				}
+			}
+		}
+	};
+}
+
+async function pushDmMessage(message) {
+	let body;
+	let response;
+
+	body = JSON.stringify(buildPushPayload(message));
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.realtime.host,
+			port: env.clients.realtime.port,
+			path: '/internal/push',
+			method: 'POST',
+			agent: agent,
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': Buffer.byteLength(body)
+			},
+			body: body
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'realtime service error',
+			{
+				cause: err,
+				details: {
+					service: 'realtime',
+					operation: 'pushDmMessage',
+					targetUserId: message.otherUserId,
+					messageId: message.messageId
+				}
+			}
+		);
+	}
+	if (response.statusCode < 200 || response.statusCode >= 300) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'realtime service error',
+			{
+				details: {
+					service: 'realtime',
+					operation: 'pushDmMessage',
+					targetUserId: message.otherUserId,
+					messageId: message.messageId,
+					upstreamStatusCode: response.statusCode,
+					responseBody: response.body
+				}
+			}
+		);
+	}
+}
+
+module.exports = {
+	pushDmMessage
+};
+===== FILE: dm/src/clients/notifications.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function buildMessageCreatedPayload(message) {
+	return {
+		recipientUserId: message.otherUserId,
+		senderUserId: message.senderId,
+		messageId: message.messageId,
+		content: message.content,
+		clientMsgId: message.clientMessageId,
+		createdAt: message.createdAt
+	};
+}
+
+function buildReadPayload(data) {
+	return {
+		readerUserId: data.senderId,
+		otherUserId: data.otherUserId,
+		readUpToMessageId: data.readUpToMessageId
+	};
+}
+
+async function postJson(path, payload, operation, details) {
+	let body;
+	let response;
+
+	body = JSON.stringify(payload);
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.notifications.host,
+			port: env.clients.notifications.port,
+			path: path,
+			method: 'POST',
+			agent: agent,
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': Buffer.byteLength(body)
+			},
+			body: body
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'notifications service error',
+			{
+				cause: err,
+				details: {
+					service: 'notifications',
+					operation: operation,
+					...details
+				}
+			}
+		);
+	}
+	if (response.statusCode < 200 || response.statusCode >= 300) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'notifications service error',
+			{
+				details: {
+					service: 'notifications',
+					operation: operation,
+					upstreamStatusCode: response.statusCode,
+					responseBody: response.body,
+					...details
+				}
+			}
+		);
+	}
+}
+
+async function createDmMessageNotification(message) {
+	return postJson(
+		'/internal/dm/message-created',
+		buildMessageCreatedPayload(message),
+		'createDmMessageNotification',
+		{
+			recipientUserId: message.otherUserId,
+			senderUserId: message.senderId,
+			messageId: message.messageId
+		}
+	);
+}
+
+async function markDmConversationRead(data) {
+	return postJson(
+		'/internal/dm/read',
+		buildReadPayload(data),
+		'markDmConversationRead',
+		{
+			readerUserId: data.senderId,
+			otherUserId: data.otherUserId,
+			readUpToMessageId: data.readUpToMessageId
+		}
+	);
+}
+
+module.exports = {
+	createDmMessageNotification,
+	markDmConversationRead
+};
+===== FILE: dm/src/errors/AppError.js =====
+class AppError extends Error {
+	constructor(code, message, options = {}) {
+		if (options.cause)
+			super(message, {cause: options.cause});
+		else
+			super(message);
+		this.name = 'AppError';
+		this.code = code;
+		this.details = options.details;
+		Error.captureStackTrace(this, AppError);
+	}
+}
+
+module.exports = AppError;
+===== FILE: dm/src/errors/errorCodes.js =====
+const ERROR_CODES = {
+	INVALID_ARGUMENT: 'INVALID_ARGUMENT',
+	FORBIDDEN: 'FORBIDDEN',
+	TARGET_USER_NOT_FOUND: 'TARGET_USER_NOT_FOUND',
+	NOT_FOUND: 'NOT_FOUND',
+	UNAUTHORIZED_CALLER: 'UNAUTHORIZED_CALLER',
+	INTERNAL_ERROR: 'INTERNAL_ERROR'
+};
+
+module.exports = ERROR_CODES;
+===== FILE: dm/src/errors/errorHandler.js =====
+const ERROR_CODES = require('./errorCodes');
+const {logHttpRequestError} = require('../log/logger');
+
+function isJsonParseError(err) {
+	return err && err.type === 'entity.parse.failed';
+}
+
+function getStatusCode(code) {
+	if (code === ERROR_CODES.INVALID_ARGUMENT)
+		return 400;
+	if (code === ERROR_CODES.FORBIDDEN)
+		return 403;
+	if (code === ERROR_CODES.TARGET_USER_NOT_FOUND)
+		return 404;
+	if (code === ERROR_CODES.NOT_FOUND)
+		return 404;
+	if (code === ERROR_CODES.UNAUTHORIZED_CALLER)
+		return 403;
+	return 500;
+}
+
+function getErrorCode(err) {
+	if (isJsonParseError(err))
+		return ERROR_CODES.INVALID_ARGUMENT;
+	if (err && err.code)
+		return err.code;
+	return ERROR_CODES.INTERNAL_ERROR;
+}
+
+function getResponseMessage(err, statusCode) {
+	if (isJsonParseError(err))
+		return 'invalid JSON body';
+	if (statusCode === 500)
+		return 'Internal server error';
+	return err.message;
+}
+
+function errorHandler(err, req, res, next) {
+	const code = getErrorCode(err);
+	const statusCode = getStatusCode(code);
+	const message = getResponseMessage(err, statusCode);
+
+	// On loggue toute l'erreur côté serveur,
+	// mais on garde une réponse API propre côté client.
+	logHttpRequestError(req, err);
+	return res.status(statusCode).json({
+		code: code,
+		message: message
+	});
+}
+
+module.exports = errorHandler;
+===== FILE: dm/src/errors/notFound.js =====
+const AppError = require('./AppError');
+const ERROR_CODES = require('./errorCodes');
+
+function notFound(req, res, next) {
+	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
+}
+
+module.exports = notFound;
+===== FILE: dm-db/Dockerfile =====
+FROM postgres:18-alpine
+
+USER root
+
+RUN mkdir -p /etc/postgres/certs
+
+COPY certs/ca.crt /etc/postgres/certs/ca.crt
+COPY certs/dm-db.crt /etc/postgres/certs/dm-db.crt
+COPY certs/dm-db.key /etc/postgres/certs/dm-db.key
+COPY pg_hba.conf /etc/postgres/pg_hba.conf
+
+RUN chown postgres:postgres /etc/postgres/certs/dm-db.key /etc/postgres/certs/dm-db.crt /etc/postgres/certs/ca.crt \
+	&& chmod 600 /etc/postgres/certs/dm-db.key \
+	&& chmod 644 /etc/postgres/certs/dm-db.crt /etc/postgres/certs/ca.crt /etc/postgres/pg_hba.conf
+
+USER postgres
+===== FILE: dm-db/pg_hba.conf =====
+local   all             all                                     trust
+hostssl dm              dm              all                     cert
+hostnossl all           all             all                     reject
+===== FILE: notifications/Dockerfile =====
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+COPY src ./src
+COPY certs ./certs
+
+CMD ["npm", "run", "dev"]
+===== FILE: notifications/package.json =====
+{
+  "name": "notifications",
+  "version": "1.0.0",
+  "description": "Notifications service",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.6.0",
+    "@prisma/client": "^7.6.0",
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "pg": "^8.20.0",
+    "prisma": "^7.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+===== FILE: notifications/prisma/schema.prisma =====
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Notification {
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  userId             String    @db.Uuid
+  type               String
+  actorUserId        String?   @db.Uuid
+  conversationUserId String?   @db.Uuid
+  messageId          String?   @db.Uuid
+  payload            Json
+  readAt             DateTime?
+  createdAt          DateTime  @default(now())
+
+  @@unique([userId, type, messageId])
+  @@index([userId, id])
+  @@index([userId, readAt])
+  @@index([userId, conversationUserId, messageId])
+}
+===== FILE: notifications/prisma.config.ts =====
+import "dotenv/config";
+import {defineConfig, env} from "prisma/config";
+
+export default defineConfig({
+	schema: "prisma/schema.prisma",
+	datasource: {
+		url: env("PRISMA_DATABASE_URL")
+	}
+});
+===== FILE: notifications/src/app.js =====
+const express = require('express');
+const notificationsRoutes = require('./routes/notifications.routes');
+const internalRoutes = require('./routes/internal.routes');
+const notFound = require('./errors/notFound');
+const errorHandler = require('./errors/errorHandler');
+const {requireCaller} = require('./middlewares/requireCaller');
+const httpLogger = require('./middlewares/httpLogger');
+
+function attachTlsContext(req, res, next) {
+	req.tls = {
+		authorized: req.client.authorized,
+		authorizationError: req.client.authorizationError,
+		peerCertificate: req.socket.getPeerCertificate()
+	};
+	next();
+}
+
+function createApp() {
+	const app = express();
+
+	app.use(attachTlsContext);
+	app.use(httpLogger);
+	app.use('/notifications', requireCaller('realtime'), express.json(), notificationsRoutes);
+	app.use('/internal', requireCaller('dm'), express.json(), internalRoutes);
+	app.use(notFound);
+	app.use(errorHandler);
+	return app;
+}
+
+module.exports = createApp;
+===== FILE: notifications/src/server.js =====
+const https = require('https');
+const env = require('./config/env');
+const {buildServerTlsOptions} = require('./config/tls');
+const createApp = require('./app');
+
+function getPeerCommonName(socket) {
+	const certificate = socket.getPeerCertificate();
+
+	if (!certificate || typeof certificate !== 'object')
+		return undefined;
+	if (!certificate.subject || typeof certificate.subject.CN !== 'string')
+		return undefined;
+	if (certificate.subject.CN.trim() === '')
+		return undefined;
+	return certificate.subject.CN.trim();
+}
+
+function installTlsDebug(server) {
+	server.on('secureConnection', (socket) => {
+		console.log('[notifications] tls secure connection', {
+			remoteAddress: socket.remoteAddress,
+			authorized: socket.authorized,
+			authorizationError: socket.authorizationError,
+			clientCn: getPeerCommonName(socket)
+		});
+	});
+	server.on('tlsClientError', (err, socket) => {
+		console.error('[notifications] tls client error', {
+			message: err.message,
+			code: err.code,
+			remoteAddress: socket.remoteAddress
+		});
+	});
+}
+
+function main() {
+	const app = createApp();
+	const server = https.createServer(buildServerTlsOptions(), app);
+
+	installTlsDebug(server);
+	server.listen(env.http.port, env.http.host, () => {
+		console.log(
+			'[' + env.service.name + '] listening on https://'
+			+ env.http.host + ':' + env.http.port
+		);
+	});
+}
+
+main();
+===== FILE: notifications/src/config/env.js =====
+const dotenv = require('dotenv');
+
+dotenv.config({quiet: true});
+
+function requireEnv(name) {
+	const value = process.env[name];
+
+	if (!value)
+		throw new Error('Missing required environment variable: ' + name);
+	return value;
+}
+
+function requireNumberEnv(name) {
+	const value = Number(requireEnv(name));
+
+	if (Number.isNaN(value))
+		throw new Error('Environment variable must be a number: ' + name);
+	return value;
+}
+
+const env = {
+	service: {
+		name: requireEnv('SERVICE_NAME')
+	},
+	http: {
+		host: requireEnv('HOST'),
+		port: requireNumberEnv('PORT')
+	},
+	timeouts: {
+		upstreamRequestMs: requireNumberEnv('UPSTREAM_REQUEST_TIMEOUT_MS')
+	},
+	tls: {
+		certPath: requireEnv('SSL_CERT_PATH'),
+		keyPath: requireEnv('SSL_KEY_PATH'),
+		caPath: requireEnv('SSL_CA_PATH')
+	},
+	db: {
+		url: requireEnv('DATABASE_URL_RUNTIME'),
+		tls: {
+			caPath: requireEnv('DB_SSL_CA_PATH'),
+			certPath: requireEnv('DB_SSL_CERT_PATH'),
+			keyPath: requireEnv('DB_SSL_KEY_PATH')
+		}
+	},
+	clients: {
+		realtime: {
+			host: requireEnv('REALTIME_SERVICE_HOST'),
+			port: requireNumberEnv('REALTIME_SERVICE_PORT')
+		}
+	}
+};
+
+module.exports = env;
+===== FILE: notifications/src/config/tls.js =====
+const fs = require('fs');
+const env = require('./env');
+
+function readFile(path) {
+	return fs.readFileSync(path);
+}
+
+function buildServerTlsOptions() {
+	return {
+		cert: readFile(env.tls.certPath),
+		key: readFile(env.tls.keyPath),
+		ca: readFile(env.tls.caPath),
+		requestCert: true,
+		rejectUnauthorized: true
+	};
+}
+
+function buildClientTlsOptions() {
+	return {
+		cert: readFile(env.tls.certPath),
+		key: readFile(env.tls.keyPath),
+		ca: readFile(env.tls.caPath),
+		rejectUnauthorized: true
+	};
+}
+
+function buildDbTlsOptions() {
+	return {
+		ca: readFile(env.db.tls.caPath),
+		cert: readFile(env.db.tls.certPath),
+		key: readFile(env.db.tls.keyPath),
+		rejectUnauthorized: true
+	};
+}
+
+module.exports = {
+	buildServerTlsOptions,
+	buildClientTlsOptions,
+	buildDbTlsOptions
+};
+===== FILE: notifications/src/db/prisma.js =====
+const {PrismaClient} = require('@prisma/client');
+const {PrismaPg} = require('@prisma/adapter-pg');
+const {Pool} = require('pg');
+const env = require('../config/env');
+const {buildDbTlsOptions} = require('../config/tls');
+
+const pool = new Pool({
+	connectionString: env.db.url,
+	ssl: buildDbTlsOptions()
+});
+
+const adapter = new PrismaPg(pool);
+const prisma = new PrismaClient({adapter});
+
+module.exports = prisma;	
+===== FILE: notifications/src/middlewares/requireCaller.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function getCallerCommonName(req) {
+	const certificate = req.tls && req.tls.peerCertificate;
+
+	if (!certificate || !certificate.subject)
+		return undefined;
+	return certificate.subject.CN;
+}
+
+function requireCaller(expectedCommonName) {
+	return (req, res, next) => {
+		const caller = getCallerCommonName(req);
+
+		if (!req.tls || req.tls.authorized !== true
+			|| caller !== expectedCommonName) {
+			return next(new AppError(
+				ERROR_CODES.UNAUTHORIZED_CALLER,
+				'unauthorized caller'
+			));
+		}
+		return next();
+	};
+}
+
+module.exports = {
+	requireCaller
+};
+===== FILE: notifications/src/routes/notifications.routes.js =====
+const express = require('express');
+const {
+	listNotifications,
+	markNotificationsRead
+} = require('../controllers/notifications.controller');
+
+const router = express.Router();
+
+router.get('/', listNotifications);
+router.post('/read', markNotificationsRead);
+
+module.exports = router;
+===== FILE: notifications/src/routes/internal.routes.js =====
+const express = require('express');
+const {
+	createDmMessageNotification,
+	markDmConversationRead
+} = require('../controllers/internal.controller');
+
+const router = express.Router();
+
+router.post('/dm/message-created', createDmMessageNotification);
+router.post('/dm/read', markDmConversationRead);
+
+module.exports = router;
+===== FILE: notifications/src/controllers/notifications.controller.js =====
+const {
+	validateListNotifications,
+	validateMarkNotificationsRead
+} = require('../validation/notifications.validation');
+const notificationsService = require('../services/notifications.service');
+
+function buildListNotificationsCommand(req)
+{
+	return {
+		userId: req.header('X-User-Id'),
+		limit: req.query.limit,
+		cursor: req.query.cursor
+	};
+}
+
+function buildMarkNotificationsReadCommand(req)
+{
+	return {
+		userId: req.header('X-User-Id'),
+		notificationIds: req.body.notificationIds
+	};
+}
+
+function mapNotificationResponse(notification)
+{
+	return {
+		notificationId: notification.notificationId,
+		type: notification.type,
+		actorUserId: notification.actorUserId,
+		createdAt: notification.createdAt,
+		payload: notification.payload
+	};
+}
+
+function buildListNotificationsResponse(result)
+{
+	return {
+		notifications: result.notifications.map(mapNotificationResponse),
+		page: {
+			limit: result.limit,
+			hasMore: result.hasMore,
+			nextCursor: result.nextCursor
+		}
+	};
+}
+
+async function listNotifications(req, res, next)
+{
+	let command;
+	let result;
+
+	try
+	{
+		command = validateListNotifications(
+			buildListNotificationsCommand(req)
+		);
+		result = await notificationsService.listNotifications(command);
+		return res.status(200).json(buildListNotificationsResponse(result));
+	}
+	catch (err)
+	{
+		return next(err);
+	}
+}
+
+async function markNotificationsRead(req, res, next)
+{
+	let command;
+	let result;
+
+	try
+	{
+		command = validateMarkNotificationsRead(
+			buildMarkNotificationsReadCommand(req)
+		);
+		result = await notificationsService.markNotificationsRead(command);
+		return res.status(200).json(result);
+	}
+	catch (err)
+	{
+		return next(err);
+	}
+}
+
+module.exports = {
+	listNotifications,
+	markNotificationsRead
+};
+===== FILE: notifications/src/controllers/internal.controller.js =====
+const {
+	validateCreateDmMessageNotification,
+	validateMarkDmConversationRead
+} = require('../validation/internal.validation');
+const notificationsService = require('../services/notifications.service');
+
+function buildCreateDmMessageNotificationCommand(req) {
+	return {
+		recipientUserId: req.body.recipientUserId,
+		senderUserId: req.body.senderUserId,
+		messageId: req.body.messageId,
+		content: req.body.content,
+		clientMessageId: req.body.clientMsgId,
+		createdAt: req.body.createdAt
+	};
+}
+
+function buildMarkDmConversationReadCommand(req) {
+	return {
+		readerUserId: req.body.readerUserId,
+		otherUserId: req.body.otherUserId,
+		readUpToMessageId: req.body.readUpToMessageId
+	};
+}
+
+function mapNotificationResponse(notification) {
+	return {
+		notificationId: notification.notificationId,
+		type: notification.type,
+		actorUserId: notification.actorUserId,
+		readAt: notification.readAt,
+		createdAt: notification.createdAt,
+		payload: notification.payload
+	};
+}
+
+async function createDmMessageNotification(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateCreateDmMessageNotification(
+			buildCreateDmMessageNotificationCommand(req)
+		);
+		result = await notificationsService.createDmMessageNotification(command);
+		return res.status(result.created ? 201 : 200).json({
+			created: result.created,
+			notification: mapNotificationResponse(result.notification)
+		});
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+async function markDmConversationRead(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateMarkDmConversationRead(
+			buildMarkDmConversationReadCommand(req)
+		);
+		result = await notificationsService.markDmConversationRead(command);
+		return res.status(200).json(result);
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+module.exports = {
+	createDmMessageNotification,
+	markDmConversationRead
+};
+===== FILE: notifications/src/services/notifications.service.js =====
+const notificationsRepository = require('../repositories/notifications.repository');
+const realtimeClient = require('../clients/realtime.client');
+
+async function createDmMessageNotification(command) {
+	let result;
+
+	result = await notificationsRepository.createDmMessageNotification({
+		recipientUserId: command.recipientUserId,
+		senderUserId: command.senderUserId,
+		messageId: command.messageId,
+		content: command.content,
+		clientMessageId: command.clientMessageId,
+		createdAt: command.createdAt
+	});
+	if (result.created) {
+		await realtimeClient.pushNotificationCreated(result.notification);
+	}
+	return result;
+}
+
+async function listNotifications(command) {
+	return notificationsRepository.listNotifications({
+		userId: command.userId,
+		limit: command.limit,
+		cursor: command.cursor
+	});
+}
+
+async function markNotificationsRead(command) {
+	return notificationsRepository.markNotificationsRead({
+		userId: command.userId,
+		notificationIds: command.notificationIds
+	});
+}
+
+async function markDmConversationRead(command) {
+	return notificationsRepository.markDmConversationRead({
+		readerUserId: command.readerUserId,
+		otherUserId: command.otherUserId,
+		readUpToMessageId: command.readUpToMessageId
+	});
+}
+
+module.exports = {
+	createDmMessageNotification,
+	listNotifications,
+	markNotificationsRead,
+	markDmConversationRead
+};
+===== FILE: notifications/src/repositories/notifications.repository.js =====
+const prisma = require('../db/prisma');
+
+const DM_MESSAGE_RECEIVED = 'dm.message.received';
+
+function buildDmMessagePayload(data) {
+	return {
+		otherUserId: data.senderUserId,
+		message: {
+			messageId: data.messageId,
+			senderId: data.senderUserId,
+			content: data.content,
+			clientMsgId: data.clientMessageId,
+			createdAt: data.createdAt
+		}
+	};
+}
+
+function mapNotification(notification) {
+	return {
+		notificationId: notification.id,
+		userId: notification.userId,
+		type: notification.type,
+		actorUserId: notification.actorUserId,
+		readAt: notification.readAt,
+		createdAt: notification.createdAt,
+		payload: notification.payload
+	};
+}
+
+function isUniqueConstraintError(err) {
+	return err && err.code === 'P2002';
+}
+
+async function findExistingDmMessageNotification(data) {
+	return prisma.notification.findFirst({
+		where: {
+			userId: data.recipientUserId,
+			type: DM_MESSAGE_RECEIVED,
+			messageId: data.messageId
+		}
+	});
+}
+
+async function createDmMessageNotification(data) {
+	let notification;
+
+	try {
+		notification = await prisma.notification.create({
+			data: {
+				userId: data.recipientUserId,
+				type: DM_MESSAGE_RECEIVED,
+				actorUserId: data.senderUserId,
+				conversationUserId: data.senderUserId,
+				messageId: data.messageId,
+				payload: buildDmMessagePayload(data)
+			}
+		});
+		return {
+			created: true,
+			notification: mapNotification(notification)
+		};
+	}
+	catch (err) {
+		if (!isUniqueConstraintError(err))
+			throw err;
+		notification = await findExistingDmMessageNotification(data);
+		if (notification) {
+			return {
+				created: false,
+				notification: mapNotification(notification)
+			};
+		}
+		throw err;
+	}
+}
+
+async function listNotifications(data) {
+	let notifications;
+	let hasMore;
+	let nextCursor;
+
+	notifications = await prisma.notification.findMany({
+		where: {
+			userId: data.userId,
+			...(data.cursor
+				? {
+					id: {
+						lt: data.cursor
+					}
+				}
+				: {})
+		},
+		orderBy: {
+			id: 'desc'
+		},
+		take: data.limit + 1
+	});
+	hasMore = notifications.length > data.limit;
+	if (hasMore)
+		notifications.pop();
+	nextCursor = hasMore && notifications.length > 0
+		? notifications[notifications.length - 1].id
+		: null;
+	return {
+		notifications: notifications.map(mapNotification),
+		limit: data.limit,
+		hasMore: hasMore,
+		nextCursor: nextCursor
+	};
+}
+
+async function markNotificationsRead(data) {
+	const readAt = new Date();
+	const result = await prisma.notification.updateMany({
+		where: {
+			userId: data.userId,
+			id: {
+				in: data.notificationIds
+			},
+			readAt: null
+		},
+		data: {
+			readAt: readAt
+		}
+	});
+
+	return {
+		markedCount: result.count
+	};
+}
+
+async function markDmConversationRead(data) {
+	const readAt = new Date();
+	const result = await prisma.notification.updateMany({
+		where: {
+			userId: data.readerUserId,
+			type: DM_MESSAGE_RECEIVED,
+			conversationUserId: data.otherUserId,
+			messageId: {
+				lte: data.readUpToMessageId
+			},
+			readAt: null
+		},
+		data: {
+			readAt: readAt
+		}
+	});
+
+	return {
+		readerUserId: data.readerUserId,
+		otherUserId: data.otherUserId,
+		readUpToMessageId: data.readUpToMessageId,
+		markedCount: result.count
+	};
+}
+
+module.exports = {
+	createDmMessageNotification,
+	listNotifications,
+	markNotificationsRead,
+	markDmConversationRead
+};
+===== FILE: notifications/src/validation/notifications.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function parsePositiveInteger(value, fieldName) {
+	const parsed = Number(value);
+
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a positive integer'
+		);
+	}
+	return parsed;
+}
+
+function validateUuidField(value, fieldName, requiredMessage) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			requiredMessage
+		);
+	}
+	value = normalizeUuid(value);
+	if (!isUuidV7(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a valid UUIDv7'
+		);
+	}
+	return value;
+}
+
+function validateUserId(value) {
+	return validateUuidField(value, 'X-User-Id', 'X-User-Id is required');
+}
+
+function validateLimit(value) {
+	if (value === undefined)
+		return 30;
+	value = parsePositiveInteger(value, 'limit');
+	if (value > 100) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'limit must be less than or equal to 100'
+		);
+	}
+	return value;
+}
+
+function validateOptionalCursor(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
+function validateNotificationIds(value) {
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'notificationIds must be a non-empty array'
+		);
+	}
+	return Array.from(new Set(value.map((item) => {
+		return validateUuidField(
+			item,
+			'notificationIds',
+			'notificationIds must contain valid UUIDv7 values'
+		);
+	})));
+}
+
+function validateListNotifications(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		userId: validateUserId(command.userId),
+		limit: validateLimit(command.limit),
+		cursor: validateOptionalCursor(command.cursor)
+	};
+}
+
+function validateMarkNotificationsRead(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		userId: validateUserId(command.userId),
+		notificationIds: validateNotificationIds(command.notificationIds)
+	};
+}
+
+module.exports = {
+	validateListNotifications,
+	validateMarkNotificationsRead
+};
+===== FILE: notifications/src/validation/internal.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function validateUuidField(value, fieldName, requiredMessage) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			requiredMessage
+		);
+	}
+	value = normalizeUuid(value);
+	if (!isUuidV7(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a valid UUIDv7'
+		);
+	}
+	return value;
+}
+
+function validateContent(value) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'content is required'
+		);
+	}
+	return value;
+}
+
+function validateCreatedAt(value) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'createdAt is required'
+		);
+	}
+	return value;
+}
+
+function validateCreateDmMessageNotification(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		recipientUserId: validateUuidField(
+			command.recipientUserId,
+			'recipientUserId',
+			'recipientUserId is required'
+		),
+		senderUserId: validateUuidField(
+			command.senderUserId,
+			'senderUserId',
+			'senderUserId is required'
+		),
+		messageId: validateUuidField(
+			command.messageId,
+			'messageId',
+			'messageId is required'
+		),
+		content: validateContent(command.content),
+		clientMessageId: validateUuidField(
+			command.clientMessageId,
+			'clientMsgId',
+			'clientMsgId is required'
+		),
+		createdAt: validateCreatedAt(command.createdAt)
+	};
+}
+
+function validateMarkDmConversationRead(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		readerUserId: validateUuidField(
+			command.readerUserId,
+			'readerUserId',
+			'readerUserId is required'
+		),
+		otherUserId: validateUuidField(
+			command.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		readUpToMessageId: validateUuidField(
+			command.readUpToMessageId,
+			'readUpToMessageId',
+			'readUpToMessageId is required'
+		)
+	};
+}
+
+module.exports = {
+	validateCreateDmMessageNotification,
+	validateMarkDmConversationRead
+};
+===== FILE: notifications/src/clients/https.agent.js =====
+const https = require('https');
+const {buildClientTlsOptions} = require('../config/tls');
+
+const agent = new https.Agent(buildClientTlsOptions());
+
+module.exports = agent;
+===== FILE: notifications/src/clients/https.request.js =====
+const https = require('https');
+const env = require('../config/env');
+
+function buildTimeoutError(timeoutMs) {
+	const err = new Error('upstream request timeout');
+
+	err.code = 'UPSTREAM_TIMEOUT';
+	err.timeoutMs = timeoutMs;
+	return err;
+}
+
+function request(options) {
+	return new Promise((resolve, reject) => {
+		let req;
+		let chunks;
+		const timeoutMs = options.timeoutMs || env.timeouts.upstreamRequestMs;
+		const requestOptions = {
+			protocol: options.protocol,
+			hostname: options.hostname,
+			port: options.port,
+			path: options.path,
+			method: options.method,
+			agent: options.agent,
+			headers: options.headers
+		};
+
+		chunks = '';
+		req = https.request(requestOptions, (res) => {
+			res.setEncoding('utf8');
+			res.on('data', (chunk) => {
+				chunks += chunk;
+			});
+			res.on('end', () => {
+				resolve({
+					statusCode: res.statusCode,
+					headers: res.headers,
+					body: chunks
+				});
+			});
+		});
+		req.setTimeout(timeoutMs, () => {
+			req.destroy(buildTimeoutError(timeoutMs));
+		});
+		req.on('error', reject);
+		if (options.body)
+			req.write(options.body);
+		req.end();
+	});
+}
+
+module.exports = request;
+===== FILE: notifications/src/clients/realtime.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function buildPublicNotification(notification) {
+	return {
+		notificationId: notification.notificationId,
+		type: notification.type,
+		actorUserId: notification.actorUserId,
+		readAt: notification.readAt,
+		createdAt: notification.createdAt,
+		payload: notification.payload
+	};
+}
+
+function buildPushPayload(notification) {
+	return {
+		userIds: [notification.userId],
+		frame: {
+			type: 'notification.created',
+			data: {
+				notification: buildPublicNotification(notification)
+			}
+		}
+	};
+}
+
+async function pushNotificationCreated(notification) {
+	let body;
+	let response;
+
+	body = JSON.stringify(buildPushPayload(notification));
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.realtime.host,
+			port: env.clients.realtime.port,
+			path: '/internal/push',
+			method: 'POST',
+			agent: agent,
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': Buffer.byteLength(body)
+			},
+			body: body
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'realtime service error',
+			{
+				cause: err,
+				details: {
+					service: 'realtime',
+					operation: 'pushNotificationCreated',
+					targetUserId: notification.userId,
+					notificationId: notification.notificationId
+				}
+			}
+		);
+	}
+	if (response.statusCode < 200 || response.statusCode >= 300) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'realtime service error',
+			{
+				details: {
+					service: 'realtime',
+					operation: 'pushNotificationCreated',
+					targetUserId: notification.userId,
+					notificationId: notification.notificationId,
+					upstreamStatusCode: response.statusCode,
+					responseBody: response.body
+				}
+			}
+		);
+	}
+}
+
+module.exports = {
+	pushNotificationCreated
+};
+===== FILE: notifications/src/errors/AppError.js =====
+class AppError extends Error {
+	constructor(code, message, options = {}) {
+		if (options.cause)
+			super(message, {cause: options.cause});
+		else
+			super(message);
+		this.name = 'AppError';
+		this.code = code;
+		this.details = options.details;
+		Error.captureStackTrace(this, AppError);
+	}
+}
+
+module.exports = AppError;
+===== FILE: notifications/src/errors/errorCodes.js =====
+const ERROR_CODES = {
+	INVALID_ARGUMENT: 'INVALID_ARGUMENT',
+	NOT_FOUND: 'NOT_FOUND',
+	UNAUTHORIZED_CALLER: 'UNAUTHORIZED_CALLER',
+	INTERNAL_ERROR: 'INTERNAL_ERROR'
+};
+
+module.exports = ERROR_CODES;
+===== FILE: notifications/src/errors/errorHandler.js =====
+const ERROR_CODES = require('./errorCodes');
+const {logHttpRequestError} = require('../log/logger');
+
+function isJsonParseError(err) {
+	return err && err.type === 'entity.parse.failed';
+}
+
+function getStatusCode(code) {
+	if (code === ERROR_CODES.INVALID_ARGUMENT)
+		return 400;
+	if (code === ERROR_CODES.NOT_FOUND)
+		return 404;
+	if (code === ERROR_CODES.UNAUTHORIZED_CALLER)
+		return 403;
+	return 500;
+}
+
+function getErrorCode(err) {
+	if (isJsonParseError(err))
+		return ERROR_CODES.INVALID_ARGUMENT;
+	if (err && err.code)
+		return err.code;
+	return ERROR_CODES.INTERNAL_ERROR;
+}
+
+function getResponseMessage(err, statusCode) {
+	if (isJsonParseError(err))
+		return 'invalid JSON body';
+	if (statusCode === 500)
+		return 'Internal server error';
+	return err.message;
+}
+
+function errorHandler(err, req, res, next) {
+	const code = getErrorCode(err);
+	const statusCode = getStatusCode(code);
+	const message = getResponseMessage(err, statusCode);
+
+	logHttpRequestError(req, err);
+	return res.status(statusCode).json({
+		code: code,
+		message: message
+	});
+}
+
+module.exports = errorHandler;
+===== FILE: notifications/src/errors/notFound.js =====
+const AppError = require('./AppError');
+const ERROR_CODES = require('./errorCodes');
+
+function notFound(req, res, next) {
+	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
+}
+
+module.exports = notFound;
+===== FILE: notifications-db/Dockerfile =====
+FROM postgres:18-alpine
+
+USER root
+
+RUN mkdir -p /etc/postgres/certs
+
+COPY certs/ca.crt /etc/postgres/certs/ca.crt
+COPY certs/notifications-db.crt /etc/postgres/certs/notifications-db.crt
+COPY certs/notifications-db.key /etc/postgres/certs/notifications-db.key
+COPY pg_hba.conf /etc/postgres/pg_hba.conf
+
+RUN chown postgres:postgres /etc/postgres/certs/notifications-db.key /etc/postgres/certs/notifications-db.crt /etc/postgres/certs/ca.crt \
+	&& chmod 600 /etc/postgres/certs/notifications-db.key \
+	&& chmod 644 /etc/postgres/certs/notifications-db.crt /etc/postgres/certs/ca.crt /etc/postgres/pg_hba.conf
+
+USER postgres
+===== FILE: notifications-db/pg_hba.conf =====
+local   all             all                                     trust
+hostssl notifications              notifications              all                     cert
+hostnossl all           all             all                     reject
+===== FILE: realtime/Dockerfile =====
+FROM node:24-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY src ./src
+COPY certs ./certs
+
+CMD ["npm", "run", "dev"]
+===== FILE: realtime/package.json =====
+{
+  "name": "realtime",
+  "version": "1.0.0",
+  "description": "Realtime WSS gateway for DM service",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "express": "^4.21.2",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  }
+}
+===== FILE: realtime/src/server.js =====
+const {
+	createFrontServer,
+	listenFrontServer
+} = require('./servers/front.server');
+const {
+	createInternalServer,
+	listenInternalServer
+} = require('./servers/internal.server');
+
+function main() {
+	const frontServer = createFrontServer();
+	const internalServer = createInternalServer();
+
+	listenFrontServer(frontServer);
+	listenInternalServer(internalServer);
+}
+
+main();
+===== FILE: realtime/src/apps/front.app.js =====
+const express = require('express');
+const notFound = require('../errors/notFound');
+const errorHandler = require('../errors/errorHandler');
+const httpLogger = require('../middlewares/httpLogger');
+
+function createFrontApp() {
+	const app = express();
+
+	app.use(httpLogger);
+	app.use(express.json());
+	app.get('/health', (req, res) => {
+		return res.status(200).json({
+			status: 'ok'
+		});
+	});
+	app.use(notFound);
+	app.use(errorHandler);
+	return app;
+}
+
+module.exports = createFrontApp;
+===== FILE: realtime/src/apps/internal.app.js =====
+const express = require('express');
+const internalRoutes = require('../routes/internal.routes');
+const requireInternalClientAuth = require('../middlewares/internalClientAuth');
+const notFound = require('../errors/notFound');
+const errorHandler = require('../errors/errorHandler');
+const httpLogger = require('../middlewares/httpLogger');
+
+function createInternalApp() {
+	const app = express();
+
+	app.use(httpLogger);
+	app.use(express.json());
+	app.use(requireInternalClientAuth);
+	app.use('/internal', internalRoutes);
+	app.use(notFound);
+	app.use(errorHandler);
+	return app;
+}
+
+module.exports = createInternalApp;
+===== FILE: realtime/src/servers/front.server.js =====
+const https = require('https');
+const env = require('../config/env');
+const {buildFrontServerTlsOptions} = require('../config/tls');
+const createFrontApp = require('../apps/front.app');
+const attachWebSocketServer = require('../ws/attachWebSocketServer');
+
+function installFrontServerDebug(server) {
+	server.on('tlsClientError', (err, socket) => {
+		console.error('[realtime] front tls client error', {
+			message: err.message,
+			code: err.code,
+			remoteAddress: socket.remoteAddress
+		});
+	});
+}
+
+function createFrontServer() {
+	const app = createFrontApp();
+	const server = https.createServer(buildFrontServerTlsOptions(), app);
+
+	attachWebSocketServer(server);
+	installFrontServerDebug(server);
+	return server;
+}
+
+function listenFrontServer(server) {
+	server.listen(env.http.port, env.http.host, () => {
+		console.log(
+			'[' + env.service.name + '] front listener on https://'
+			+ env.http.host + ':' + env.http.port
+			+ ' (ws path: ' + env.ws.path + ')'
+		);
+	});
+}
+
+module.exports = {
+	createFrontServer,
+	listenFrontServer
+};
+===== FILE: realtime/src/servers/internal.server.js =====
+const https = require('https');
+const env = require('../config/env');
+const {buildInternalServerTlsOptions} = require('../config/tls');
+const createInternalApp = require('../apps/internal.app');
+
+function getPeerCommonName(socket) {
+	const certificate = socket.getPeerCertificate();
+
+	if (!certificate || typeof certificate !== 'object')
+		return undefined;
+	if (!certificate.subject || typeof certificate.subject.CN !== 'string')
+		return undefined;
+	if (certificate.subject.CN.trim() === '')
+		return undefined;
+	return certificate.subject.CN.trim();
+}
+
+function installInternalServerDebug(server) {
+	server.on('secureConnection', (socket) => {
+		console.log('[realtime] internal tls secure connection', {
+			remoteAddress: socket.remoteAddress,
+			authorized: socket.authorized,
+			authorizationError: socket.authorizationError,
+			clientCn: getPeerCommonName(socket)
+		});
+	});
+	server.on('tlsClientError', (err, socket) => {
+		console.error('[realtime] internal tls client error', {
+			message: err.message,
+			code: err.code,
+			remoteAddress: socket.remoteAddress
+		});
+	});
+}
+
+function createInternalServer() {
+	const app = createInternalApp();
+	const server = https.createServer(buildInternalServerTlsOptions(), app);
+
+	installInternalServerDebug(server);
+	return server;
+}
+
+function listenInternalServer(server) {
+	server.listen(env.internal.port, env.internal.host, () => {
+		console.log(
+			'[' + env.service.name + '] internal listener on https://'
+			+ env.internal.host + ':' + env.internal.port
+			+ ' allowed CNs=' + env.internal.allowedClientCns.join(',')
+		);
+	});
+}
+
+module.exports = {
+	createInternalServer,
+	listenInternalServer
+};
+===== FILE: realtime/src/config/env.js =====
+const dotenv = require('dotenv');
+
+dotenv.config({quiet: true});
+
+function requireEnv(name) {
+	const value = process.env[name];
+
+	if (!value)
+		throw new Error('Missing required environment variable: ' + name);
+	return value;
+}
+
+function requireNumberEnv(name) {
+	const value = Number(requireEnv(name));
+
+	if (Number.isNaN(value))
+		throw new Error('Environment variable must be a number: ' + name);
+	return value;
+}
+
+function requireCsvEnv(name) {
+	const values = requireEnv(name)
+		.split(',')
+		.map((item) => item.trim())
+		.filter((item) => item !== '');
+
+	if (values.length === 0) {
+		throw new Error(
+			'Environment variable must contain at least one value: ' + name
+		);
+	}
+	return values;
+}
+
+const env = {
+	service: {
+		name: requireEnv('SERVICE_NAME')
+	},
+	http: {
+		host: requireEnv('HOST'),
+		port: requireNumberEnv('PORT')
+	},
+	internal: {
+		host: requireEnv('INTERNAL_HOST'),
+		port: requireNumberEnv('INTERNAL_PORT'),
+		allowedClientCns: requireCsvEnv('INTERNAL_ALLOWED_CLIENT_CNS')
+	},
+	timeouts: {
+		upstreamRequestMs: requireNumberEnv('UPSTREAM_REQUEST_TIMEOUT_MS')
+	},
+	tls: {
+		certPath: requireEnv('SSL_CERT_PATH'),
+		keyPath: requireEnv('SSL_KEY_PATH'),
+		caPath: requireEnv('SSL_CA_PATH')
+	},
+	clients: {
+		dm: {
+			host: requireEnv('DM_SERVICE_HOST'),
+			port: requireNumberEnv('DM_SERVICE_PORT')
+		},
+		notifications: {
+			host: requireEnv('NOTIFICATIONS_SERVICE_HOST'),
+			port: requireNumberEnv('NOTIFICATIONS_SERVICE_PORT')
+		}
+	},
+	ws: {
+		path: requireEnv('WS_PATH'),
+		tokenSecret: requireEnv('WS_TOKEN_SECRET'),
+		authTimeoutMs: requireNumberEnv('WS_AUTH_TIMEOUT_MS'),
+		heartbeatIntervalMs: requireNumberEnv('WS_HEARTBEAT_INTERVAL_MS'),
+		maxPayloadBytes: requireNumberEnv('WS_MAX_PAYLOAD_BYTES')
+	}
+};
+
+module.exports = env;
+===== FILE: realtime/src/config/tls.js =====
+const fs = require('fs');
+const env = require('./env');
+
+function buildBaseTlsOptions() {
+	return {
+		cert: fs.readFileSync(env.tls.certPath),
+		key: fs.readFileSync(env.tls.keyPath),
+		ca: fs.readFileSync(env.tls.caPath)
+	};
+}
+
+function buildFrontServerTlsOptions() {
+	return buildBaseTlsOptions();
+}
+
+function buildInternalServerTlsOptions() {
+	return {
+		...buildBaseTlsOptions(),
+		requestCert: true,
+		rejectUnauthorized: true
+	};
+}
+
+function buildClientTlsOptions() {
+	return {
+		...buildBaseTlsOptions(),
+		rejectUnauthorized: true
+	};
+}
+
+module.exports = {
+	buildFrontServerTlsOptions,
+	buildInternalServerTlsOptions,
+	buildClientTlsOptions
+};
+===== FILE: realtime/src/middlewares/internalClientAuth.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+
+function getClientCommonName(req) {
+	const certificate = req.socket.getPeerCertificate();
+
+	if (!certificate || typeof certificate !== 'object')
+		return undefined;
+	if (!certificate.subject || typeof certificate.subject.CN !== 'string')
+		return undefined;
+	if (certificate.subject.CN.trim() === '')
+		return undefined;
+	return certificate.subject.CN.trim();
+}
+
+function isAllowedCommonName(commonName) {
+	return env.internal.allowedClientCns.includes(commonName);
+}
+
+function requireInternalClientAuth(req, res, next) {
+	const commonName = getClientCommonName(req);
+
+	if (req.socket.authorized !== true) {
+		return next(new AppError(
+			ERROR_CODES.UNAUTHORIZED,
+			'client certificate required'
+		));
+	}
+	if (!commonName) {
+		return next(new AppError(
+			ERROR_CODES.UNAUTHORIZED,
+			'client certificate common name is missing'
+		));
+	}
+	if (!isAllowedCommonName(commonName)) {
+		return next(new AppError(
+			ERROR_CODES.UNAUTHORIZED,
+			'client certificate is not allowed'
+		));
+	}
+	return next();
+}
+
+module.exports = requireInternalClientAuth;
+===== FILE: realtime/src/routes/internal.routes.js =====
+const express = require('express');
+const pushController = require('../controllers/push.controller');
+
+const router = express.Router();
+
+router.post('/push', pushController.push);
+
+module.exports = router;
+===== FILE: realtime/src/controllers/push.controller.js =====
+const pushService = require('../services/push.service');
+const {validatePushRequest} = require('../validation/push.validation');
+
+function push(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validatePushRequest(req.body);
+		result = pushService.pushToUsers(command);
+		return res.status(200).json(result);
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+module.exports = {
+	push
+};
+===== FILE: realtime/src/services/auth.service.js =====
+const {createHmac, timingSafeEqual} = require('node:crypto');
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function unauthorized() {
+	return new AppError(ERROR_CODES.UNAUTHORIZED, 'invalid auth token');
+}
+
+function decodeBase64UrlToBuffer(value) {
+	let input = value.replace(/-/g, '+').replace(/_/g, '/');
+
+	while (input.length % 4 !== 0)
+		input += '=';
+	return Buffer.from(input, 'base64');
+}
+
+function parseJsonBase64Url(value) {
+	try {
+		return JSON.parse(decodeBase64UrlToBuffer(value).toString('utf8'));
+	}
+	catch (err) {
+		throw unauthorized();
+	}
+}
+
+function buildSignature(unsignedToken) {
+	return createHmac('sha256', env.ws.tokenSecret)
+		.update(unsignedToken)
+		.digest();
+}
+
+function assertValidHeader(header) {
+	if (!header || typeof header !== 'object')
+		throw unauthorized();
+	if (header.alg !== 'HS256')
+		throw unauthorized();
+	if (header.typ !== 'JWT')
+		throw unauthorized();
+}
+
+function assertValidSignature(unsignedToken, signaturePart) {
+	let providedSignature;
+	const expectedSignature = buildSignature(unsignedToken);
+
+	try {
+		providedSignature = decodeBase64UrlToBuffer(signaturePart);
+	}
+	catch (err) {
+		throw unauthorized();
+	}
+	if (providedSignature.length !== expectedSignature.length)
+		throw unauthorized();
+	if (!timingSafeEqual(providedSignature, expectedSignature))
+		throw unauthorized();
+}
+
+function validatePayload(payload) {
+	if (!payload || typeof payload !== 'object')
+		throw unauthorized();
+	if (!isUuidV7(payload.sub))
+		throw unauthorized();
+	if (!Number.isInteger(payload.exp))
+		throw unauthorized();
+	if (Date.now() >= payload.exp * 1000)
+		throw unauthorized();
+	return {
+		userId: normalizeUuid(payload.sub)
+	};
+}
+
+function verifyAuthToken(token) {
+	let parts;
+	let header;
+	let payload;
+	let unsignedToken;
+
+	if (typeof token !== 'string' || token.trim() === '')
+		throw unauthorized();
+	parts = token.split('.');
+	if (parts.length !== 3)
+		throw unauthorized();
+	header = parseJsonBase64Url(parts[0]);
+	payload = parseJsonBase64Url(parts[1]);
+	unsignedToken = parts[0] + '.' + parts[1];
+	assertValidHeader(header);
+	assertValidSignature(unsignedToken, parts[2]);
+	return validatePayload(payload);
+}
+
+module.exports = {
+	verifyAuthToken
+};
+===== FILE: realtime/src/services/dispatch.service.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const dmClient = require('../clients/dm.client');
+const notificationsClient = require('../clients/notifications.client');
+
+async function dispatch(frameType, userId, command) {
+	if (frameType === 'dm.send') {
+		return {
+			type: 'dm.send.ok',
+			data: await dmClient.sendMessage({
+				senderId: userId,
+				otherUserId: command.otherUserId,
+				content: command.content,
+				clientMessageId: command.clientMessageId
+			})
+		};
+	}
+	if (frameType === 'dm.conversations.list') {
+		return {
+			type: 'dm.conversations.list.ok',
+			data: await dmClient.listConversations({
+				userId: userId,
+				limit: command.limit,
+				cursor: command.cursor
+			})
+		};
+	}
+	if (frameType === 'dm.messages.list') {
+		return {
+			type: 'dm.messages.list.ok',
+			data: await dmClient.listMessages({
+				userId: userId,
+				otherUserId: command.otherUserId,
+				limit: command.limit,
+				beforeMessageId: command.beforeMessageId
+			})
+		};
+	}
+	if (frameType === 'dm.read') {
+		return {
+			type: 'dm.read.ok',
+			data: await dmClient.markConversationRead({
+				userId: userId,
+				otherUserId: command.otherUserId,
+				messageId: command.messageId
+			})
+		};
+	}
+	if (frameType === 'notifications.list') {
+		return {
+			type: 'notifications.list.ok',
+			data: await notificationsClient.listNotifications({
+				userId: userId,
+				limit: command.limit,
+				cursor: command.cursor
+			})
+		};
+	}
+	if (frameType === 'notifications.read') {
+		return {
+			type: 'notifications.read.ok',
+			data: await notificationsClient.markNotificationsRead({
+				userId: userId,
+				notificationIds: command.notificationIds
+			})
+		};
+	}
+	throw new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type');
+}
+
+module.exports = {
+	dispatch
+};
+===== FILE: realtime/src/services/push.service.js =====
+const registryService = require('./registry.service');
+
+function pushToUsers(command) {
+	let deliveredUsers;
+	let deliveredSockets;
+
+	deliveredUsers = 0;
+	deliveredSockets = 0;
+	command.userIds.forEach((userId) => {
+		const count = registryService.sendToUserSockets(userId, command.frame);
+
+		if (count > 0)
+			deliveredUsers += 1;
+		deliveredSockets += count;
+	});
+	return {
+		deliveredUsers: deliveredUsers,
+		deliveredSockets: deliveredSockets
+	};
+}
+
+module.exports = {
+	pushToUsers
+};
+===== FILE: realtime/src/services/registry.service.js =====
+const {sendJson} = require('../ws/send');
+
+const allSockets = new Set();
+const socketsByUserId = new Map();
+const userIdBySocket = new Map();
+
+function addSocket(ws) {
+	allSockets.add(ws);
+}
+
+function bindSocketToUser(userId, ws) {
+	let userSockets;
+
+	userIdBySocket.set(ws, userId);
+	userSockets = socketsByUserId.get(userId);
+	if (!userSockets) {
+		userSockets = new Set();
+		socketsByUserId.set(userId, userSockets);
+	}
+	userSockets.add(ws);
+}
+
+function removeSocket(ws) {
+	const userId = userIdBySocket.get(ws);
+	const userSockets = socketsByUserId.get(userId);
+
+	allSockets.delete(ws);
+	userIdBySocket.delete(ws);
+	if (!userSockets)
+		return;
+	userSockets.delete(ws);
+	if (userSockets.size === 0)
+		socketsByUserId.delete(userId);
+}
+
+function sendToUserSockets(userId, frame) {
+	let deliveredCount;
+	const userSockets = socketsByUserId.get(userId);
+
+	if (!userSockets)
+		return 0;
+	deliveredCount = 0;
+	userSockets.forEach((socket) => {
+		if (sendJson(socket, frame))
+			deliveredCount += 1;
+	});
+	return deliveredCount;
+}
+
+function forEachSocket(callback) {
+	allSockets.forEach(callback);
+}
+
+module.exports = {
+	addSocket,
+	bindSocketToUser,
+	removeSocket,
+	sendToUserSockets,
+	forEachSocket
+};
+===== FILE: realtime/src/validation/ws.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function validateUuidField(value, fieldName, requiredMessage) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(ERROR_CODES.INVALID_ARGUMENT, requiredMessage);
+	}
+	value = normalizeUuid(value);
+	if (!isUuidV7(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a valid UUIDv7'
+		);
+	}
+	return value;
+}
+
+function validateOptionalRequestId(value) {
+	if (value === undefined)
+		return undefined;
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'requestId must be a non-empty string'
+		);
+	}
+	return value;
+}
+
+function validateContent(value) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'content is required'
+		);
+	}
+	return value;
+}
+
+function validateOptionalLimit(value) {
+	if (value === undefined)
+		return undefined;
+	if (!Number.isInteger(value) || value <= 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'limit must be a positive integer'
+		);
+	}
+	return value;
+}
+
+function validateOptionalCursor(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
+function validateOptionalNotificationCursor(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
+function validateOptionalMessageId(value, fieldName) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(value, fieldName, fieldName + ' is required');
+}
+
+function validateUuidArray(value, fieldName) {
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a non-empty array'
+		);
+	}
+	return value.map((item) => {
+		return validateUuidField(
+			item,
+			fieldName,
+			fieldName + ' must contain valid UUIDv7 values'
+		);
+	});
+}
+
+function validateIncomingFrame(rawData) {
+	let frame;
+
+	try {
+		frame = JSON.parse(rawData.toString('utf8'));
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'invalid JSON frame'
+		);
+	}
+	if (!frame || typeof frame !== 'object' || Array.isArray(frame)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame must be a JSON object'
+		);
+	}
+	if (typeof frame.type !== 'string' || frame.type.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame.type is required'
+		);
+	}
+	return frame;
+}
+
+function validateAuthFrame(frame) {
+	if (typeof frame.token !== 'string' || frame.token.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'token is required'
+		);
+	}
+	return {
+		token: frame.token
+	};
+}
+
+function validateDmSendFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		content: validateContent(frame.content),
+		clientMessageId: validateUuidField(
+			frame.clientMsgId,
+			'clientMsgId',
+			'clientMsgId is required'
+		)
+	};
+}
+
+function validateDmConversationsListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		limit: validateOptionalLimit(frame.limit),
+		cursor: validateOptionalCursor(frame.cursor)
+	};
+}
+
+function validateDmMessagesListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		limit: validateOptionalLimit(frame.limit),
+		beforeMessageId: validateOptionalMessageId(
+			frame.beforeMessageId,
+			'beforeMessageId'
+		)
+	};
+}
+
+function validateDmReadFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		otherUserId: validateUuidField(
+			frame.otherUserId,
+			'otherUserId',
+			'otherUserId is required'
+		),
+		messageId: validateUuidField(
+			frame.messageId,
+			'messageId',
+			'messageId is required'
+		)
+	};
+}
+
+function validateNotificationsListFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		limit: validateOptionalLimit(frame.limit),
+		cursor: validateOptionalNotificationCursor(frame.cursor)
+	};
+}
+
+function validateNotificationsReadFrame(frame) {
+	return {
+		requestId: validateOptionalRequestId(frame.requestId),
+		notificationIds: validateUuidArray(
+			frame.notificationIds,
+			'notificationIds'
+		)
+	};
+}
+
+function validateAuthenticatedFrame(frame) {
+	if (frame.type === 'dm.send')
+		return validateDmSendFrame(frame);
+	if (frame.type === 'dm.conversations.list')
+		return validateDmConversationsListFrame(frame);
+	if (frame.type === 'dm.messages.list')
+		return validateDmMessagesListFrame(frame);
+	if (frame.type === 'dm.read')
+		return validateDmReadFrame(frame);
+	if (frame.type === 'notifications.list')
+		return validateNotificationsListFrame(frame);
+	if (frame.type === 'notifications.read')
+		return validateNotificationsReadFrame(frame);
+	throw new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type');
+}
+
+module.exports = {
+	validateIncomingFrame,
+	validateAuthFrame,
+	validateAuthenticatedFrame
+};
+===== FILE: realtime/src/validation/push.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function validateUserIds(value) {
+	let userIds;
+
+	if (!Array.isArray(value) || value.length === 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'userIds must be a non-empty array'
+		);
+	}
+	userIds = value.map((item) => {
+		if (typeof item !== 'string' || item.trim() === '') {
+			throw new AppError(
+				ERROR_CODES.INVALID_ARGUMENT,
+				'userIds must contain non-empty strings'
+			);
+		}
+		item = normalizeUuid(item);
+		if (!isUuidV7(item)) {
+			throw new AppError(
+				ERROR_CODES.INVALID_ARGUMENT,
+				'userIds must contain valid UUIDv7 values'
+			);
+		}
+		return item;
+	});
+	return Array.from(new Set(userIds));
+}
+
+function validateFrame(value) {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame must be a JSON object'
+		);
+	}
+	if (typeof value.type !== 'string' || value.type.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'frame.type is required'
+		);
+	}
+	return value;
+}
+
+function validatePushRequest(body) {
+	if (!body || typeof body !== 'object' || Array.isArray(body)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'request body must be a JSON object'
+		);
+	}
+	return {
+		userIds: validateUserIds(body.userIds),
+		frame: validateFrame(body.frame)
+	};
+}
+
+module.exports = {
+	validatePushRequest
+};
+===== FILE: realtime/src/clients/https.agent.js =====
+const https = require('https');
+const {buildClientTlsOptions} = require('../config/tls');
+
+const agent = new https.Agent(buildClientTlsOptions());
+
+module.exports = agent;
+===== FILE: realtime/src/clients/https.request.js =====
+const https = require('https');
+const env = require('../config/env');
+
+function buildTimeoutError(timeoutMs) {
+	const err = new Error('upstream request timeout');
+
+	err.code = 'UPSTREAM_TIMEOUT';
+	err.timeoutMs = timeoutMs;
+	return err;
+}
+
+function request(options) {
+	return new Promise((resolve, reject) => {
+		let req;
+		let chunks;
+		const timeoutMs = options.timeoutMs || env.timeouts.upstreamRequestMs;
+		const requestOptions = {
+			protocol: options.protocol,
+			hostname: options.hostname,
+			port: options.port,
+			path: options.path,
+			method: options.method,
+			agent: options.agent,
+			headers: options.headers
+		};
+
+		chunks = '';
+		req = https.request(requestOptions, (res) => {
+			res.setEncoding('utf8');
+			res.on('data', (chunk) => {
+				chunks += chunk;
+			});
+			res.on('end', () => {
+				resolve({
+					statusCode: res.statusCode,
+					headers: res.headers,
+					body: chunks
+				});
+			});
+		});
+		req.setTimeout(timeoutMs, () => {
+			req.destroy(buildTimeoutError(timeoutMs));
+		});
+		req.on('error', reject);
+		if (options.body)
+			req.write(options.body);
+		req.end();
+	});
+}
+
+module.exports = request;
+===== FILE: realtime/src/clients/dm.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function parseResponseBody(response) {
+	if (!response.body)
+		return null;
+	try {
+		return JSON.parse(response.body);
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'dm service returned invalid JSON',
+			{
+				cause: err,
+				details: {
+					service: 'dm'
+				}
+			}
+		);
+	}
+}
+async function performRequest(options) {
+	let response;
+	let payload;
+
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.dm.host,
+			port: env.clients.dm.port,
+			path: options.path,
+			method: options.method,
+			agent: agent,
+			headers: options.headers,
+			body: options.body
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'dm service error',
+			{
+				cause: err,
+				details: {
+					service: 'dm',
+					operation: options.operation
+				}
+			}
+		);
+	}
+	payload = parseResponseBody(response);
+	if (response.statusCode >= 200 && response.statusCode < 300)
+		return payload;
+	throw new AppError(
+		payload && payload.code ? payload.code : ERROR_CODES.INTERNAL_ERROR,
+		payload && payload.message ? payload.message : 'dm service error',
+		{
+			details: {
+				service: 'dm',
+				operation: options.operation,
+				upstreamStatusCode: response.statusCode
+			}
+		}
+	);
+}
+
+function buildHeaders(userId, hasBody) {
+	const headers = {
+		'X-User-Id': userId
+	};
+
+	if (hasBody)
+		headers['Content-Type'] = 'application/json';
+	return headers;
+}
+
+function buildConversationQuery(command) {
+	const params = new URLSearchParams();
+
+	if (command.limit !== undefined)
+		params.set('limit', String(command.limit));
+	if (command.cursor !== undefined)
+		params.set('cursor', command.cursor);
+	if (params.size === 0)
+		return '';
+	return '?' + params.toString();
+}
+
+function buildMessagesQuery(command) {
+	const params = new URLSearchParams();
+
+	if (command.limit !== undefined)
+		params.set('limit', String(command.limit));
+	if (command.beforeMessageId !== undefined)
+		params.set('beforeMessageId', command.beforeMessageId);
+	if (params.size === 0)
+		return '';
+	return '?' + params.toString();
+}
+
+async function sendMessage(command) {
+	return performRequest({
+		operation: 'sendMessage',
+		method: 'POST',
+		path: '/dm/users/' + command.otherUserId + '/messages',
+		headers: buildHeaders(command.senderId, true),
+		body: JSON.stringify({
+			content: command.content,
+			clientMsgId: command.clientMessageId
+		})
+	});
+}
+
+async function listConversations(command) {
+	return performRequest({
+		operation: 'listConversations',
+		method: 'GET',
+		path: '/dm/conversations' + buildConversationQuery(command),
+		headers: buildHeaders(command.userId, false)
+	});
+}
+
+async function listMessages(command) {
+	return performRequest({
+		operation: 'listMessages',
+		method: 'GET',
+		path: '/dm/users/' + command.otherUserId + '/messages'
+			+ buildMessagesQuery(command),
+		headers: buildHeaders(command.userId, false)
+	});
+}
+
+async function markConversationRead(command) {
+	return performRequest({
+		operation: 'markConversationRead',
+		method: 'POST',
+		path: '/dm/users/' + command.otherUserId + '/read',
+		headers: buildHeaders(command.userId, true),
+		body: JSON.stringify({
+			messageId: command.messageId
+		})
+	});
+}
+
+module.exports = {
+	sendMessage,
+	listConversations,
+	listMessages,
+	markConversationRead
+};
+===== FILE: realtime/src/clients/notifications.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function parseResponseBody(response) {
+	if (!response.body)
+		return null;
+	try {
+		return JSON.parse(response.body);
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'notifications service returned invalid JSON',
+			{
+				cause: err,
+				details: {
+					service: 'notifications'
+				}
+			}
+		);
+	}
+}
+
+async function performRequest(options) {
+	let response;
+	let payload;
+
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.notifications.host,
+			port: env.clients.notifications.port,
+			path: options.path,
+			method: options.method,
+			agent: agent,
+			headers: options.headers,
+			body: options.body
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'notifications service error',
+			{
+				cause: err,
+				details: {
+					service: 'notifications',
+					operation: options.operation
+				}
+			}
+		);
+	}
+	payload = parseResponseBody(response);
+	if (response.statusCode >= 200 && response.statusCode < 300)
+		return payload;
+	throw new AppError(
+		payload && payload.code ? payload.code : ERROR_CODES.INTERNAL_ERROR,
+		payload && payload.message ? payload.message : 'notifications service error',
+		{
+			details: {
+				service: 'notifications',
+				operation: options.operation,
+				upstreamStatusCode: response.statusCode
+			}
+		}
+	);
+}
+
+function buildHeaders(userId, hasBody) {
+	const headers = {
+		'X-User-Id': userId
+	};
+
+	if (hasBody)
+		headers['Content-Type'] = 'application/json';
+	return headers;
+}
+
+function buildListQuery(command) {
+	const params = new URLSearchParams();
+
+	if (command.limit !== undefined)
+		params.set('limit', String(command.limit));
+	if (command.cursor !== undefined)
+		params.set('cursor', command.cursor);
+	if (params.size === 0)
+		return '';
+	return '?' + params.toString();
+}
+
+async function listNotifications(command) {
+	return performRequest({
+		operation: 'listNotifications',
+		method: 'GET',
+		path: '/notifications' + buildListQuery(command),
+		headers: buildHeaders(command.userId, false)
+	});
+}
+
+async function markNotificationsRead(command) {
+	return performRequest({
+		operation: 'markNotificationsRead',
+		method: 'POST',
+		path: '/notifications/read',
+		headers: buildHeaders(command.userId, true),
+		body: JSON.stringify({
+			notificationIds: command.notificationIds
+		})
+	});
+}
+
+module.exports = {
+	listNotifications,
+	markNotificationsRead
+};
+===== FILE: realtime/src/ws/attachWebSocketServer.js =====
+const {WebSocketServer} = require('ws');
+const env = require('../config/env');
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const registryService = require('../services/registry.service');
+const {handleSocketMessage} = require('./message.handler');
+const {sendError} = require('./send');
+
+function getRequestPath(url) {
+	return new URL(url, 'https://realtime.local').pathname;
+}
+
+function rejectUpgrade(socket, statusCode, reason) {
+	socket.write(
+		'HTTP/1.1 ' + statusCode + ' ' + reason + '\r\n'
+		+ 'Connection: close\r\n'
+		+ '\r\n'
+	);
+	socket.destroy();
+}
+
+function installSocketLifecycle(ws) {
+	registryService.addSocket(ws);
+	ws.isAlive = true;
+	ws.authenticated = false;
+	ws.userId = undefined;
+	ws.on('pong', () => {
+		ws.isAlive = true;
+	});
+	ws.on('message', (data, isBinary) => {
+		if (isBinary) {
+			sendError(
+				ws,
+				new AppError(
+					ERROR_CODES.INVALID_ARGUMENT,
+					'binary frames are not supported'
+				)
+			);
+			ws.close(1003, 'binary not supported');
+			return;
+		}
+		handleSocketMessage(ws, data).catch((err) => {
+			sendError(ws, err);
+		});
+	});
+	ws.on('close', () => {
+		registryService.removeSocket(ws);
+	});
+	ws.on('error', () => {
+	});
+	setTimeout(() => {
+		if (ws.authenticated !== true)
+			ws.close(1008, 'auth timeout');
+	}, env.ws.authTimeoutMs);
+}
+
+function startHeartbeat() {
+	setInterval(() => {
+		registryService.forEachSocket((ws) => {
+			if (ws.isAlive === false) {
+				ws.terminate();
+				return;
+			}
+			ws.isAlive = false;
+			ws.ping();
+		});
+	}, env.ws.heartbeatIntervalMs);
+}
+
+function attachWebSocketServer(server) {
+	const wss = new WebSocketServer({
+		noServer: true,
+		maxPayload: env.ws.maxPayloadBytes,
+		perMessageDeflate: false
+	});
+
+	server.on('upgrade', (request, socket, head) => {
+		if (getRequestPath(request.url) !== env.ws.path) {
+			rejectUpgrade(socket, 404, 'Not Found');
+			return;
+		}
+		wss.handleUpgrade(request, socket, head, (ws) => {
+			wss.emit('connection', ws, request);
+		});
+	});
+	wss.on('connection', (ws) => {
+		installSocketLifecycle(ws);
+	});
+	startHeartbeat();
+	return wss;
+}
+
+module.exports = attachWebSocketServer;
+===== FILE: realtime/src/ws/message.handler.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const {verifyAuthToken} = require('../services/auth.service');
+const dispatchService = require('../services/dispatch.service');
+const registryService = require('../services/registry.service');
+const {
+	validateIncomingFrame,
+	validateAuthFrame,
+	validateAuthenticatedFrame
+} = require('../validation/ws.validation');
+const {sendJson, sendError} = require('./send');
+const {logWsFrameReceived} = require('../log/logger');
+
+function extractRequestId(frame) {
+	if (!frame)
+		return undefined;
+	if (typeof frame.requestId !== 'string' || frame.requestId.trim() === '')
+		return undefined;
+	return frame.requestId;
+}
+
+async function handleAuthFrame(ws, frame) {
+	let command;
+	let session;
+
+	command = validateAuthFrame(frame);
+	session = verifyAuthToken(command.token);
+	registryService.bindSocketToUser(session.userId, ws);
+	ws.authenticated = true;
+	ws.userId = session.userId;
+	sendJson(ws, {
+		type: 'auth.ok',
+		userId: session.userId
+	});
+}
+
+async function handleAuthenticatedFrame(ws, frame) {
+	let command;
+	let responseFrame;
+
+	command = validateAuthenticatedFrame(frame);
+	responseFrame = await dispatchService.dispatch(frame.type, ws.userId, command);
+	if (command.requestId !== undefined)
+		responseFrame.requestId = command.requestId;
+	sendJson(ws, responseFrame);
+}
+
+async function handleSocketMessage(ws, rawData) {
+	let frame;
+	let requestId;
+
+	try {
+		frame = validateIncomingFrame(rawData);
+		logWsFrameReceived(ws, frame);
+	}
+	catch (err) {
+		sendError(ws, err);
+		return;
+	}
+	requestId = extractRequestId(frame);
+	if (ws.authenticated !== true) {
+		if (frame.type !== 'auth') {
+			sendError(
+				ws,
+				new AppError(ERROR_CODES.UNAUTHORIZED, 'auth required'),
+				requestId
+			);
+			ws.close(1008, 'auth required');
+			return;
+		}
+		try {
+			await handleAuthFrame(ws, frame);
+		}
+		catch (err) {
+			sendError(ws, err, requestId);
+			ws.close(1008, 'unauthorized');
+		}
+		return;
+	}
+	if (frame.type === 'auth') {
+		sendError(
+			ws,
+			new AppError(
+				ERROR_CODES.INVALID_ARGUMENT,
+				'socket already authenticated'
+			),
+			requestId
+		);
+		return;
+	}
+	try {
+		await handleAuthenticatedFrame(ws, frame);
+	}
+	catch (err) {
+		sendError(ws, err, requestId);
+	}
+}
+
+module.exports = {
+	handleSocketMessage
+};
+===== FILE: realtime/src/ws/send.js =====
+const WebSocket = require('ws');
+const {logWsFrameSent} = require('../log/logger');
+
+function sendJson(ws, payload) {
+	if (ws.readyState !== WebSocket.OPEN)
+		return false;
+	logWsFrameSent(ws, payload);
+	ws.send(JSON.stringify(payload));
+	return true;
+}
+
+function sendError(ws, err, requestId) {
+	const frame = {
+		type: 'error',
+		code: err && err.code ? err.code : 'INTERNAL_ERROR',
+		message: err && err.message ? err.message : 'internal error'
+	};
+
+	if (requestId !== undefined)
+		frame.requestId = requestId;
+	return sendJson(ws, frame);
+}
+
+module.exports = {
+	sendJson,
+	sendError
+};
+===== FILE: realtime/src/errors/AppError.js =====
+class AppError extends Error {
+	constructor(code, message, options = {}) {
+		if (options.cause)
+			super(message, {cause: options.cause});
+		else
+			super(message);
+		this.name = 'AppError';
+		this.code = code;
+		this.details = options.details;
+		Error.captureStackTrace(this, AppError);
+	}
+}
+
+module.exports = AppError;
+===== FILE: realtime/src/errors/errorCodes.js =====
+const ERROR_CODES = {
+	INVALID_ARGUMENT: 'INVALID_ARGUMENT',
+	UNAUTHORIZED: 'UNAUTHORIZED',
+	NOT_FOUND: 'NOT_FOUND',
+	INTERNAL_ERROR: 'INTERNAL_ERROR'
+};
+
+module.exports = ERROR_CODES;
+===== FILE: realtime/src/errors/errorHandler.js =====
+const ERROR_CODES = require('./errorCodes');
+const {logHttpRequestError} = require('../log/logger');
+
+function getStatusCode(code) {
+	if (code === ERROR_CODES.INVALID_ARGUMENT)
+		return 400;
+	if (code === ERROR_CODES.UNAUTHORIZED)
+		return 401;
+	if (code === ERROR_CODES.NOT_FOUND)
+		return 404;
+	return 500;
+}
+
+function getErrorCode(err) {
+	if (err && err.code)
+		return err.code;
+	return ERROR_CODES.INTERNAL_ERROR;
+}
+
+function getResponseMessage(err, statusCode) {
+	if (statusCode === 500)
+		return 'Internal server error';
+	return err.message;
+}
+
+function errorHandler(err, req, res, next) {
+	const code = getErrorCode(err);
+	const statusCode = getStatusCode(code);
+	const message = getResponseMessage(err, statusCode);
+
+	// log complet côté serveur, réponse simple côté client.
+	logHttpRequestError(req, err);
+	return res.status(statusCode).json({
+		code: code,
+		message: message
+	});
+}
+
+module.exports = errorHandler;
+===== FILE: realtime/src/errors/notFound.js =====
+const AppError = require('./AppError');
+const ERROR_CODES = require('./errorCodes');
+
+function notFound(req, res, next) {
+	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
+}
+
+module.exports = notFound;
+===== FILE: ws-test/connect.sh =====
+#!/bin/sh
+set -eu
+
+TOKEN="$(node /work/gen-token.js "$@")"
+
+printf '[ws-test] connecting to %s\n' "${WS_URL}"
+printf '[ws-test] sending auth frame automatically\n'
+
+(
+	printf '{"type":"auth","token":"%s"}\n' "${TOKEN}"
+	cat
+) | wscat -k -c "${WS_URL}"
+===== FILE: ws-test/gen-auth-frame.js =====
+const crypto = require('crypto');
+
+function fail(message) {
+	console.error(message);
+	process.exit(1);
+}
+
+function base64UrlJson(value) {
+	return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+function main() {
+	let secret;
+	let userId;
+	let ttlSeconds;
+	let now;
+	let header;
+	let payload;
+	let unsignedToken;
+	let signature;
+	let token;
+
+	secret = process.env.WS_TOKEN_SECRET;
+	userId = process.argv[2] || process.env.WS_TEST_USER_ID;
+	ttlSeconds = Number(process.argv[3] || process.env.WS_TOKEN_TTL_SECONDS || 315360000);
+	if (!secret)
+		fail('Missing WS_TOKEN_SECRET');
+	if (!userId)
+		fail('Missing WS_TEST_USER_ID');
+	if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0)
+		fail('Invalid WS_TOKEN_TTL_SECONDS');
+	now = Math.floor(Date.now() / 1000);
+	header = base64UrlJson({
+		alg: 'HS256',
+		typ: 'JWT'
+	});
+	payload = base64UrlJson({
+		sub: userId,
+		exp: now + ttlSeconds
+	});
+	unsignedToken = header + '.' + payload;
+	signature = crypto
+		.createHmac('sha256', secret)
+		.update(unsignedToken)
+		.digest('base64url');
+	token = unsignedToken + '.' + signature;
+	console.log(JSON.stringify({
+		type: 'auth',
+		token: token
+	}));
+}
+
+main();
+===== FILE: ws-test/gen-token.js =====
+const crypto = require('crypto');
+
+function fail(message) {
+	console.error(message);
+	process.exit(1);
+}
+
+function base64UrlJson(value) {
+	return Buffer.from(JSON.stringify(value)).toString('base64url');
+}
+
+function main() {
+	let secret;
+	let userId;
+	let ttlSeconds;
+	let now;
+	let header;
+	let payload;
+	let unsignedToken;
+	let signature;
+	let token;
+
+	secret = process.env.WS_TOKEN_SECRET;
+	userId = process.argv[2] || process.env.WS_TEST_USER_ID;
+	ttlSeconds = Number(process.argv[3] || process.env.WS_TOKEN_TTL_SECONDS || 315360000);
+	if (!secret)
+		fail('Missing WS_TOKEN_SECRET');
+	if (!userId)
+		fail('Missing WS_TEST_USER_ID');
+	if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0)
+		fail('ttlSeconds must be a positive integer');
+	now = Math.floor(Date.now() / 1000);
+	header = base64UrlJson({
+		alg: 'HS256',
+		typ: 'JWT'
+	});
+	payload = base64UrlJson({
+		sub: userId,
+		exp: now + ttlSeconds
+	});
+	unsignedToken = header + '.' + payload;
+	signature = crypto
+		.createHmac('sha256', secret)
+		.update(unsignedToken)
+		.digest('base64url');
+	token = unsignedToken + '.' + signature;
+	console.log(token);
+}
+
+main();
+===== FILE: ws-test/package.json =====
+{
+  "name": "ws-test",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {}
+}

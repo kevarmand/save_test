@@ -16,6 +16,19 @@ function buildHttpContext(req) {
 	};
 }
 
+function serializeError(err) {
+	if (!err)
+		return undefined;
+	return {
+		name: err.name,
+		code: err.code,
+		message: err.message,
+		details: err.details,
+		stack: err.stack,
+		cause: serializeError(err.cause)
+	};
+}
+
 function logHttpRequestReceived(req) {
 	console.log('[dm] request received', buildHttpContext(req));
 }
@@ -28,7 +41,24 @@ function logHttpResponseSent(req, statusCode, payload) {
 	});
 }
 
+function logHttpRequestError(req, err) {
+	console.error('[dm] request failed', {
+		...buildHttpContext(req),
+		error: serializeError(err)
+	});
+}
+
+function logError(label, err, context) {
+	console.error('[dm] error', {
+		label: label,
+		context: context,
+		error: serializeError(err)
+	});
+}
+
 module.exports = {
 	logHttpRequestReceived,
-	logHttpResponseSent
+	logHttpResponseSent,
+	logHttpRequestError,
+	logError
 };

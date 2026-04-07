@@ -26,6 +26,19 @@ function buildWsContext(ws) {
 	};
 }
 
+function serializeError(err) {
+	if (!err)
+		return undefined;
+	return {
+		name: err.name,
+		code: err.code,
+		message: err.message,
+		details: err.details,
+		stack: err.stack,
+		cause: serializeError(err.cause)
+	};
+}
+
 function logHttpRequestReceived(req) {
 	console.log('[realtime] request received', buildHttpContext(req));
 }
@@ -35,6 +48,13 @@ function logHttpResponseSent(req, statusCode, payload) {
 		...buildHttpContext(req),
 		statusCode: statusCode,
 		payload: payload
+	});
+}
+
+function logHttpRequestError(req, err) {
+	console.error('[realtime] request failed', {
+		...buildHttpContext(req),
+		error: serializeError(err)
 	});
 }
 
@@ -55,6 +75,7 @@ function logWsFrameSent(ws, frame) {
 module.exports = {
 	logHttpRequestReceived,
 	logHttpResponseSent,
+	logHttpRequestError,
 	logWsFrameReceived,
 	logWsFrameSent
 };

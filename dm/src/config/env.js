@@ -55,9 +55,9 @@ const env = {
 			host: requireEnv('REALTIME_SERVICE_HOST'),
 			port: requireNumberEnv('REALTIME_SERVICE_PORT')
 		},
-		notification: {
-			host: requireEnv('NOTIFICATION_SERVICE_HOST'),
-			port: requireNumberEnv('NOTIFICATION_SERVICE_PORT')
+		notifications: {
+			host: requireEnv('NOTIFICATIONS_SERVICE_HOST'),
+			port: requireNumberEnv('NOTIFICATIONS_SERVICE_PORT')
 		}
 	}
 };

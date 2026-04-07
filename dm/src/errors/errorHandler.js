@@ -1,4 +1,5 @@
 const ERROR_CODES = require('./errorCodes');
+const {logHttpRequestError} = require('../log/logger');
 
 function isJsonParseError(err) {
 	return err && err.type === 'entity.parse.failed';
@@ -39,7 +40,10 @@ function errorHandler(err, req, res, next) {
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
-	res.status(statusCode).json({
+	// On loggue toute l'erreur côté serveur,
+	// mais on garde une réponse API propre côté client.
+	logHttpRequestError(req, err);
+	return res.status(statusCode).json({
 		code: code,
 		message: message
 	});

@@ -1,4 +1,5 @@
 const ERROR_CODES = require('./errorCodes');
+const {logHttpRequestError} = require('../log/logger');
 
 function getStatusCode(code) {
 	if (code === ERROR_CODES.INVALID_ARGUMENT)
@@ -27,6 +28,8 @@ function errorHandler(err, req, res, next) {
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
+	// log complet côté serveur, réponse simple côté client.
+	logHttpRequestError(req, err);
 	return res.status(statusCode).json({
 		code: code,
 		message: message
