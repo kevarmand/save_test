@@ -59,9 +59,6 @@ services:
       REALTIME_SERVICE_HOST: realtime
       REALTIME_SERVICE_PORT: 7443
 
-      NOTIFICATIONS_SERVICE_HOST: notifications
-      NOTIFICATIONS_SERVICE_PORT: 7000
-
       DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm
       DB_SSL_CA_PATH: /app/certs/ca.crt
       DB_SSL_CERT_PATH: /app/certs/dm.crt
@@ -174,6 +171,7 @@ services:
       DB_SSL_KEY_PATH: /app/certs/notifications.key
 
       UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+      INTERNAL_ALLOWED_CLIENT_CNS: dm
 
       PRISMA_DATABASE_URL: postgresql://notifications@notifications-db:5432/notifications?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/notifications.p12&sslaccept=strict
     networks:

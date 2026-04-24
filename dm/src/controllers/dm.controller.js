@@ -84,7 +84,7 @@ function buildConversationResponse(conversation) {
 	return {
 		otherUserId: conversation.otherUserId,
 		lastReadMessageId: conversation.lastReadMessageId,
-		hasUnread: conversation.hasUnread,
+		unreadCount: conversation.unreadCount,
 		lastMessage: conversation.lastMessage
 			? mapMessageResponse(conversation.lastMessage)
 			: null

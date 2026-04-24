@@ -47,20 +47,41 @@ function mapMessage(message, users, senderId) {
 	};
 }
 
-function mapConversation(conversation, senderId) {
+async function buildUnreadCount(conversation, senderId, lastReadMessageId) {
+	const where = {
+		conversationId: conversation.id,
+		authorId: {
+			not: senderId
+		}
+	};
+
+	if (lastReadMessageId) {
+		where.id = {
+			gt: lastReadMessageId
+		};
+	}
+	return prisma.message.count({
+		where: where
+	});
+}
+
+async function mapConversation(conversation, senderId) {
 	const lastMessage = conversation.messages[0] || null;
 	const users = {
 		userLowId: conversation.userLowId,
 		userHighId: conversation.userHighId
 	};
 	const lastReadMessageId = getSenderReadMessageId(conversation, senderId);
+	const unreadCount = await buildUnreadCount(
+		conversation,
+		senderId,
+		lastReadMessageId
+	);
 
 	return {
 		otherUserId: getOtherUserId(users, senderId),
 		lastReadMessageId: lastReadMessageId,
-		hasUnread: !lastMessage
-			? false
-			: !lastReadMessageId || lastReadMessageId < lastMessage.id,
+		unreadCount: unreadCount,
 		lastMessage: lastMessage
 			? mapMessage(lastMessage, users, senderId)
 			: null
@@ -300,23 +321,22 @@ async function listConversations(data) {
 			}
 		}
 	});
-	mapped = conversations
-		.map((conversation) => {
-			return mapConversation(conversation, data.senderId);
-		})
-		.sort((left, right) => {
-			if (!left.lastMessage && !right.lastMessage)
-				return 0;
-			if (!left.lastMessage)
-				return 1;
-			if (!right.lastMessage)
-				return -1;
-			if (left.lastMessage.messageId < right.lastMessage.messageId)
-				return 1;
-			if (left.lastMessage.messageId > right.lastMessage.messageId)
-				return -1;
+	mapped = await Promise.all(conversations.map((conversation) => {
+		return mapConversation(conversation, data.senderId);
+	}));
+	mapped.sort((left, right) => {
+		if (!left.lastMessage && !right.lastMessage)
 			return 0;
-		});
+		if (!left.lastMessage)
+			return 1;
+		if (!right.lastMessage)
+			return -1;
+		if (left.lastMessage.messageId < right.lastMessage.messageId)
+			return 1;
+		if (left.lastMessage.messageId > right.lastMessage.messageId)
+			return -1;
+		return 0;
+	});
 	filtered = data.cursor
 		? mapped.filter((conversation) => {
 			return conversation.lastMessage

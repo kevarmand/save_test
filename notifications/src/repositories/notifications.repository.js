@@ -1,18 +1,7 @@
 const prisma = require('../db/prisma');
 
-const DM_MESSAGE_RECEIVED = 'dm.message.received';
-
-function buildDmMessagePayload(data) {
-	return {
-		otherUserId: data.senderUserId,
-		message: {
-			messageId: data.messageId,
-			senderId: data.senderUserId,
-			content: data.content,
-			clientMsgId: data.clientMessageId,
-			createdAt: data.createdAt
-		}
-	};
+function buildNotificationTypeFromCommentAction(action) {
+	return 'comment.' + action;
 }
 
 function mapNotification(notification) {
@@ -27,51 +16,29 @@ function mapNotification(notification) {
 	};
 }
 
-function isUniqueConstraintError(err) {
-	return err && err.code === 'P2002';
-}
-
-async function findExistingDmMessageNotification(data) {
-	return prisma.notification.findFirst({
-		where: {
-			userId: data.recipientUserId,
-			type: DM_MESSAGE_RECEIVED,
-			messageId: data.messageId
-		}
-	});
-}
-
-async function createDmMessageNotification(data) {
+async function createCommentNotification(data) {
 	let notification;
 
-	try {
-		notification = await prisma.notification.create({
-			data: {
-				userId: data.recipientUserId,
-				type: DM_MESSAGE_RECEIVED,
-				actorUserId: data.senderUserId,
-				conversationUserId: data.senderUserId,
-				messageId: data.messageId,
-				payload: buildDmMessagePayload(data)
-			}
-		});
+	if (data.actorUserId === data.postOwnerId) {
 		return {
-			created: true,
-			notification: mapNotification(notification)
+			created: false
 		};
 	}
-	catch (err) {
-		if (!isUniqueConstraintError(err))
-			throw err;
-		notification = await findExistingDmMessageNotification(data);
-		if (notification) {
-			return {
-				created: false,
-				notification: mapNotification(notification)
-			};
+	notification = await prisma.notification.create({
+		data: {
+			userId: data.postOwnerId,
+			type: buildNotificationTypeFromCommentAction(data.action),
+			actorUserId: data.actorUserId,
+			payload: {
+				postId: data.postId,
+				commentId: data.commentId
+			}
 		}
-		throw err;
-	}
+	});
+	return {
+		created: true,
+		notification: mapNotification(notification)
+	};
 }
 
 async function listNotifications(data) {
@@ -110,7 +77,7 @@ async function listNotifications(data) {
 }
 
 async function markNotificationsRead(data) {
-	const readAt = new Date();
+	const now = new Date();
 	const result = await prisma.notification.updateMany({
 		where: {
 			userId: data.userId,
@@ -120,43 +87,33 @@ async function markNotificationsRead(data) {
 			readAt: null
 		},
 		data: {
-			readAt: readAt
+			readAt: now
 		}
 	});
 
 	return {
-		markedCount: result.count
+		updatedCount: result.count
 	};
 }
 
-async function markDmConversationRead(data) {
-	const readAt = new Date();
-	const result = await prisma.notification.updateMany({
+async function deleteNotifications(data) {
+	const result = await prisma.notification.deleteMany({
 		where: {
-			userId: data.readerUserId,
-			type: DM_MESSAGE_RECEIVED,
-			conversationUserId: data.otherUserId,
-			messageId: {
-				lte: data.readUpToMessageId
-			},
-			readAt: null
-		},
-		data: {
-			readAt: readAt
+			userId: data.userId,
+			id: {
+				in: data.notificationIds
+			}
 		}
 	});
 
 	return {
-		readerUserId: data.readerUserId,
-		otherUserId: data.otherUserId,
-		readUpToMessageId: data.readUpToMessageId,
-		markedCount: result.count
+		deletedCount: result.count
 	};
 }
 
 module.exports = {
-	createDmMessageNotification,
+	createCommentNotification,
 	listNotifications,
 	markNotificationsRead,
-	markDmConversationRead
+	deleteNotifications
 };

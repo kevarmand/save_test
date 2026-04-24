@@ -1,4 +1,5 @@
 const express = require('express');
+const env = require('./config/env');
 const notificationsRoutes = require('./routes/notifications.routes');
 const internalRoutes = require('./routes/internal.routes');
 const notFound = require('./errors/notFound');
@@ -20,8 +21,18 @@ function createApp() {
 
 	app.use(attachTlsContext);
 	app.use(httpLogger);
-	app.use('/notifications', requireCaller('realtime'), express.json(), notificationsRoutes);
-	app.use('/internal', requireCaller('dm'), express.json(), internalRoutes);
+	app.use(
+		'/notifications',
+		requireCaller('realtime'),
+		express.json(),
+		notificationsRoutes
+	);
+	app.use(
+		'/internal',
+		requireCaller(env.internal.allowedClientCns),
+		express.json(),
+		internalRoutes
+	);
 	app.use(notFound);
 	app.use(errorHandler);
 	return app;

@@ -1,112 +1,146 @@
 ===== TREE =====
 compose.yaml  [error opening dir]
 
-0 directories, 0 files
+0 directories, 1 file
 
-dm
-├── Dockerfile
-├── package.json
-├── prisma
-│   └── schema.prisma
-├── prisma.config.ts
-└── src
-    ├── app.js
-    ├── clients
-    │   ├── https.agent.js
-    │   ├── https.request.js
-    │   ├── notifications.client.js
-    │   ├── realtime.client.js
-    │   ├── social.client.js
-    │   └── user.client.js
-    ├── config
-    │   ├── env.js
-    │   └── tls.js
-    ├── controllers
-    │   └── dm.controller.js
-    ├── db
-    │   └── prisma.js
-    ├── errors
-    │   ├── AppError.js
-    │   ├── errorCodes.js
-    │   ├── errorHandler.js
-    │   └── notFound.js
-    ├── log
-    │   └── logger.js
-    ├── middlewares
-    │   ├── httpLogger.js
-    │   └── requireCaller.js
-    ├── repositories
-    │   └── dm.repository.js
-    ├── routes
-    │   └── dm.routes.js
-    ├── server.js
-    ├── services
-    │   └── dm.service.js
-    └── validation
-        └── dm.validation.js
+dm/src
+├── app.js
+├── clients
+│   ├── https.agent.js
+│   ├── https.request.js
+│   ├── realtime.client.js
+│   ├── social.client.js
+│   └── user.client.js
+├── config
+│   ├── env.js
+│   └── tls.js
+├── controllers
+│   └── dm.controller.js
+├── db
+│   └── prisma.js
+├── errors
+│   ├── AppError.js
+│   ├── errorCodes.js
+│   └── errorHandler.js
+├── log
+│   └── logger.js
+├── middlewares
+│   ├── httpLogger.js
+│   └── requireCaller.js
+├── repositories
+│   └── dm.repository.js
+├── routes
+│   └── dm.routes.js
+├── server.js
+├── services
+│   └── dm.service.js
+└── validation
+    └── dm.validation.js
 
-13 directories, 27 files
+12 directories, 21 files
+
+dm/prisma
+└── schema.prisma
+
+1 directory, 1 file
 
 dm-db
-├── Dockerfile
-├── init
 └── pg_hba.conf
 
-1 directory, 2 files
+1 directory, 1 file
 
-notifications
-├── Dockerfile
-├── package.json
-├── prisma
-│   └── schema.prisma
-├── prisma.config.ts
-└── src
-    ├── app.js
-    ├── clients
-    │   ├── https.agent.js
-    │   ├── https.request.js
-    │   └── realtime.client.js
-    ├── config
-    │   ├── env.js
-    │   └── tls.js
-    ├── controllers
-    │   ├── internal.controller.js
-    │   └── notifications.controller.js
-    ├── db
-    │   └── prisma.js
-    ├── errors
-    │   ├── AppError.js
-    │   ├── errorCodes.js
-    │   ├── errorHandler.js
-    │   └── notFound.js
-    ├── log
-    │   └── logger.js
-    ├── middlewares
-    │   ├── httpLogger.js
-    │   └── requireCaller.js
-    ├── repositories
-    │   └── notifications.repository.js
-    ├── routes
-    │   ├── internal.routes.js
-    │   └── notifications.routes.js
-    ├── server.js
-    ├── services
-    │   └── notifications.service.js
-    └── validation
-        ├── internal.validation.js
-        └── notifications.validation.js
+notifications/src
+├── app.js
+├── clients
+│   ├── https.agent.js
+│   ├── https.request.js
+│   └── realtime.client.js
+├── config
+│   ├── env.js
+│   └── tls.js
+├── controllers
+│   ├── internal.controller.js
+│   └── notifications.controller.js
+├── db
+│   └── prisma.js
+├── errors
+│   ├── AppError.js
+│   ├── errorCodes.js
+│   └── errorHandler.js
+├── log
+│   └── logger.js
+├── middlewares
+│   ├── httpLogger.js
+│   └── requireCaller.js
+├── repositories
+│   └── notifications.repository.js
+├── routes
+│   ├── internal.routes.js
+│   └── notifications.routes.js
+├── server.js
+├── services
+│   └── notifications.service.js
+└── validation
+    ├── internal.validation.js
+    └── notifications.validation.js
 
-13 directories, 27 files
+12 directories, 22 files
+
+notifications/prisma
+└── schema.prisma
+
+1 directory, 1 file
 
 notifications-db
-├── Dockerfile
-├── init
 └── pg_hba.conf
 
-1 directory, 2 files
+1 directory, 1 file
+
+realtime/src
+├── apps
+│   ├── front.app.js
+│   └── internal.app.js
+├── clients
+│   ├── dm.client.js
+│   ├── https.agent.js
+│   ├── https.request.js
+│   └── notifications.client.js
+├── config
+│   ├── env.js
+│   └── tls.js
+├── controllers
+│   └── push.controller.js
+├── errors
+│   ├── AppError.js
+│   ├── errorCodes.js
+│   └── errorHandler.js
+├── log
+│   └── logger.js
+├── middlewares
+│   ├── httpLogger.js
+│   └── internalClientAuth.js
+├── routes
+│   └── internal.routes.js
+├── server.js
+├── servers
+│   ├── front.server.js
+│   └── internal.server.js
+├── services
+│   ├── auth.service.js
+│   ├── dispatch.service.js
+│   ├── push.service.js
+│   └── registry.service.js
+├── validation
+│   ├── push.validation.js
+│   └── ws.validation.js
+└── ws
+    ├── attachWebSocketServer.js
+    ├── message.handler.js
+    └── send.js
+
+13 directories, 28 files
 
 realtime
-├── Dockerfile
 ├── package.json
 └── src
     ├── apps
@@ -125,8 +159,7 @@ realtime
     ├── errors
     │   ├── AppError.js
     │   ├── errorCodes.js
-    │   ├── errorHandler.js
-    │   └── notFound.js
+    │   └── errorHandler.js
     ├── log
     │   └── logger.js
     ├── middlewares
@@ -151,16 +184,7 @@ realtime
         ├── message.handler.js
         └── send.js
 
-13 directories, 31 files
-
-ws-test
-├── connect.sh
-├── Dockerfile
-├── gen-auth-frame.js
-├── gen-token.js
-└── package.json
-
-0 directories, 5 files
+14 directories, 29 files
 
 ===== FILE: compose.yaml =====
 services:
@@ -223,9 +247,6 @@ services:
 
       REALTIME_SERVICE_HOST: realtime
       REALTIME_SERVICE_PORT: 7443
-
-      NOTIFICATIONS_SERVICE_HOST: notifications
-      NOTIFICATIONS_SERVICE_PORT: 7000
 
       DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm
       DB_SSL_CA_PATH: /app/certs/ca.crt
@@ -339,6 +360,7 @@ services:
       DB_SSL_KEY_PATH: /app/certs/notifications.key
 
       UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+      INTERNAL_ALLOWED_CLIENT_CNS: dm
 
       PRISMA_DATABASE_URL: postgresql://notifications@notifications-db:5432/notifications?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/notifications.p12&sslaccept=strict
     networks:
@@ -375,20 +397,6 @@ volumes:
   notifications_node_modules:
 networks:
   dm_net:
-===== FILE: dm/Dockerfile =====
-FROM node:24-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-COPY src ./src
-COPY certs ./certs
-
-CMD ["npm", "run", "dev"]
 ===== FILE: dm/package.json =====
 {
   "name": "test_docker",
@@ -547,7 +555,7 @@ main();
 ===== FILE: dm/src/config/env.js =====
 const dotenv = require('dotenv');
 
-dotenv.config({ quiet: true });
+dotenv.config({quiet: true});
 
 function requireEnv(name) {
 	const value = process.env[name];
@@ -601,10 +609,6 @@ const env = {
 		realtime: {
 			host: requireEnv('REALTIME_SERVICE_HOST'),
 			port: requireNumberEnv('REALTIME_SERVICE_PORT')
-		},
-		notifications: {
-			host: requireEnv('NOTIFICATIONS_SERVICE_HOST'),
-			port: requireNumberEnv('NOTIFICATIONS_SERVICE_PORT')
 		}
 	}
 };
@@ -667,6 +671,89 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({adapter});
 
 module.exports = prisma;
+===== FILE: dm/src/log/logger.js =====
+function getCallerCommonName(req) {
+	const certificate = req.tls && req.tls.peerCertificate;
+
+	if (!certificate || !certificate.subject)
+		return undefined;
+	return certificate.subject.CN;
+}
+
+function buildHttpContext(req) {
+	return {
+		method: req.method,
+		path: req.originalUrl,
+		caller: getCallerCommonName(req),
+		authorized: req.tls && req.tls.authorized,
+		authorizationError: req.tls && req.tls.authorizationError
+	};
+}
+
+function serializeError(err) {
+	if (!err)
+		return undefined;
+	return {
+		name: err.name,
+		code: err.code,
+		message: err.message,
+		details: err.details,
+		stack: err.stack,
+		cause: serializeError(err.cause)
+	};
+}
+
+function logHttpRequestReceived(req) {
+	console.log('[dm] request received', buildHttpContext(req));
+}
+
+function logHttpResponseSent(req, statusCode, payload) {
+	console.log('[dm] response sent', {
+		...buildHttpContext(req),
+		statusCode: statusCode,
+		payload: payload
+	});
+}
+
+function logHttpRequestError(req, err) {
+	console.error('[dm] request failed', {
+		...buildHttpContext(req),
+		error: serializeError(err)
+	});
+}
+
+function logError(label, err, context) {
+	console.error('[dm] error', {
+		label: label,
+		context: context,
+		error: serializeError(err)
+	});
+}
+
+module.exports = {
+	logHttpRequestReceived,
+	logHttpResponseSent,
+	logHttpRequestError,
+	logError
+};
+===== FILE: dm/src/middlewares/httpLogger.js =====
+const {
+	logHttpRequestReceived,
+	logHttpResponseSent
+} = require('../log/logger');
+
+function httpLogger(req, res, next) {
+	const originalJson = res.json.bind(res);
+
+	logHttpRequestReceived(req);
+	res.json = (payload) => {
+		logHttpResponseSent(req, res.statusCode, payload);
+		return originalJson(payload);
+	};
+	return next();
+}
+
+module.exports = httpLogger;
 ===== FILE: dm/src/middlewares/requireCaller.js =====
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
@@ -801,7 +888,7 @@ function buildConversationResponse(conversation) {
 	return {
 		otherUserId: conversation.otherUserId,
 		lastReadMessageId: conversation.lastReadMessageId,
-		hasUnread: conversation.hasUnread,
+		unreadCount: conversation.unreadCount,
 		lastMessage: conversation.lastMessage
 			? mapMessageResponse(conversation.lastMessage)
 			: null
@@ -888,14 +975,29 @@ const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
 const dmRepository = require('../repositories/dm.repository');
 const realtimeClient = require('../clients/realtime.client');
-const notificationsClient = require('../clients/notifications.client');
 // const userClient = require('../clients/user.client');
 // const socialClient = require('../clients/social.client');
 
-function assertDifferentUsers(senderId, otherUserId)
-{
-	if (senderId === otherUserId)
-	{
+function logSideEffectFailure(operation, err, details) {
+	console.error('[dm] side effect failed', {
+		operation: operation,
+		code: err && err.code,
+		message: err && err.message,
+		details: details
+	});
+}
+
+async function runBestEffort(operation, details, fn) {
+	try {
+		await fn();
+	}
+	catch (err) {
+		logSideEffectFailure(operation, err, details);
+	}
+}
+
+function assertDifferentUsers(senderId, otherUserId) {
+	if (senderId === otherUserId) {
 		throw new AppError(
 			ERROR_CODES.FORBIDDEN,
 			'cannot use DM endpoints with yourself'
@@ -903,9 +1005,8 @@ function assertDifferentUsers(senderId, otherUserId)
 	}
 }
 
-async function validateCreateMessageDependencies(command)
-{
-	// Réactiver ces vérifications quand les services user/social
+async function validateCreateMessageDependencies(command) {
+	// TODO :Réactiver ces vérifications quand les services user/social
 	// seront disponibles sur cette branche.
 	//
 	// await userClient.ensureUserExists(command.otherUserId);
@@ -915,8 +1016,7 @@ async function validateCreateMessageDependencies(command)
 	// );
 }
 
-async function createMessage(command)
-{
+async function createMessage(command) {
 	let result;
 
 	assertDifferentUsers(command.senderId, command.otherUserId);
@@ -927,16 +1027,20 @@ async function createMessage(command)
 		content: command.content,
 		clientMessageId: command.clientMessageId
 	});
-	if (result.created)
-	{
-		await realtimeClient.pushDmMessage(result.message);
-		await notificationsClient.createDmMessageNotification(result.message);
+	if (result.created) {
+		await runBestEffort(
+			'pushDmMessage',
+			{
+				targetUserId: result.message.otherUserId,
+				messageId: result.message.messageId
+			},
+			() => realtimeClient.pushDmMessage(result.message)
+		);
 	}
 	return result.message;
 }
 
-async function listMessages(command)
-{
+async function listMessages(command) {
 	let result;
 
 	assertDifferentUsers(command.senderId, command.otherUserId);
@@ -946,8 +1050,7 @@ async function listMessages(command)
 		limit: command.limit,
 		beforeMessageId: command.beforeMessageId
 	});
-	if (result.error === 'before_message_not_found')
-	{
+	if (result.error === 'before_message_not_found') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
 			'beforeMessageId not found in this conversation'
@@ -956,8 +1059,7 @@ async function listMessages(command)
 	return result;
 }
 
-async function markConversationRead(command)
-{
+async function markConversationRead(command) {
 	let result;
 
 	assertDifferentUsers(command.senderId, command.otherUserId);
@@ -966,30 +1068,22 @@ async function markConversationRead(command)
 		otherUserId: command.otherUserId,
 		messageId: command.messageId
 	});
-	if (result.error === 'conversation_not_found')
-	{
+	if (result.error === 'conversation_not_found') {
 		throw new AppError(
 			ERROR_CODES.NOT_FOUND,
 			'conversation not found'
 		);
 	}
-	if (result.error === 'message_not_found')
-	{
+	if (result.error === 'message_not_found') {
 		throw new AppError(
 			ERROR_CODES.NOT_FOUND,
 			'message not found in this conversation'
 		);
 	}
-	await notificationsClient.markDmConversationRead({
-		senderId: command.senderId,
-		otherUserId: result.otherUserId,
-		readUpToMessageId: result.readUpToMessageId
-	});
 	return result;
 }
 
-async function listConversations(command)
-{
+async function listConversations(command) {
 	return dmRepository.listConversations({
 		senderId: command.senderId,
 		limit: command.limit,
@@ -1053,20 +1147,41 @@ function mapMessage(message, users, senderId) {
 	};
 }
 
-function mapConversation(conversation, senderId) {
+async function buildUnreadCount(conversation, senderId, lastReadMessageId) {
+	const where = {
+		conversationId: conversation.id,
+		authorId: {
+			not: senderId
+		}
+	};
+
+	if (lastReadMessageId) {
+		where.id = {
+			gt: lastReadMessageId
+		};
+	}
+	return prisma.message.count({
+		where: where
+	});
+}
+
+async function mapConversation(conversation, senderId) {
 	const lastMessage = conversation.messages[0] || null;
 	const users = {
 		userLowId: conversation.userLowId,
 		userHighId: conversation.userHighId
 	};
 	const lastReadMessageId = getSenderReadMessageId(conversation, senderId);
+	const unreadCount = await buildUnreadCount(
+		conversation,
+		senderId,
+		lastReadMessageId
+	);
 
 	return {
 		otherUserId: getOtherUserId(users, senderId),
 		lastReadMessageId: lastReadMessageId,
-		hasUnread: !lastMessage
-			? false
-			: !lastReadMessageId || lastReadMessageId < lastMessage.id,
+		unreadCount: unreadCount,
 		lastMessage: lastMessage
 			? mapMessage(lastMessage, users, senderId)
 			: null
@@ -1306,23 +1421,22 @@ async function listConversations(data) {
 			}
 		}
 	});
-	mapped = conversations
-		.map((conversation) => {
-			return mapConversation(conversation, data.senderId);
-		})
-		.sort((left, right) => {
-			if (!left.lastMessage && !right.lastMessage)
-				return 0;
-			if (!left.lastMessage)
-				return 1;
-			if (!right.lastMessage)
-				return -1;
-			if (left.lastMessage.messageId < right.lastMessage.messageId)
-				return 1;
-			if (left.lastMessage.messageId > right.lastMessage.messageId)
-				return -1;
+	mapped = await Promise.all(conversations.map((conversation) => {
+		return mapConversation(conversation, data.senderId);
+	}));
+	mapped.sort((left, right) => {
+		if (!left.lastMessage && !right.lastMessage)
 			return 0;
-		});
+		if (!left.lastMessage)
+			return 1;
+		if (!right.lastMessage)
+			return -1;
+		if (left.lastMessage.messageId < right.lastMessage.messageId)
+			return 1;
+		if (left.lastMessage.messageId > right.lastMessage.messageId)
+			return -1;
+		return 0;
+	});
 	filtered = data.cursor
 		? mapped.filter((conversation) => {
 			return conversation.lastMessage
@@ -1665,62 +1779,52 @@ async function pushDmMessage(message) {
 module.exports = {
 	pushDmMessage
 };
-===== FILE: dm/src/clients/notifications.client.js =====
+===== FILE: dm/src/clients/social.client.js =====
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
 const env = require('../config/env');
 const agent = require('./https.agent');
 const request = require('./https.request');
 
-function buildMessageCreatedPayload(message) {
-	return {
-		recipientUserId: message.otherUserId,
-		senderUserId: message.senderId,
-		messageId: message.messageId,
-		content: message.content,
-		clientMsgId: message.clientMessageId,
-		createdAt: message.createdAt
-	};
-}
-
-function buildReadPayload(data) {
-	return {
-		readerUserId: data.senderId,
-		otherUserId: data.otherUserId,
-		readUpToMessageId: data.readUpToMessageId
-	};
-}
-
-async function postJson(path, payload, operation, details) {
-	let body;
+async function ensureUsersAreFriends(userId, otherUserId) {
 	let response;
 
-	body = JSON.stringify(payload);
 	try {
 		response = await request({
 			protocol: 'https:',
-			hostname: env.clients.notifications.host,
-			port: env.clients.notifications.port,
-			path: path,
-			method: 'POST',
-			agent: agent,
-			headers: {
-				'Content-Type': 'application/json',
-				'Content-Length': Buffer.byteLength(body)
-			},
-			body: body
+			hostname: env.clients.social.host,
+			port: env.clients.social.port,
+			path: '/friendships/' + userId + '/' + otherUserId,
+			method: 'GET',
+			agent: agent
 		});
 	}
 	catch (err) {
 		throw new AppError(
 			ERROR_CODES.INTERNAL_ERROR,
-			'notifications service error',
+			'social service error',
 			{
 				cause: err,
 				details: {
-					service: 'notifications',
-					operation: operation,
-					...details
+					service: 'social',
+					operation: 'ensureUsersAreFriends',
+					userId: userId,
+					otherUserId: otherUserId
+				}
+			}
+		);
+	}
+	if (response.statusCode === 403) {
+		throw new AppError(
+			ERROR_CODES.FORBIDDEN,
+			'cannot send message to a non-friend user',
+			{
+				details: {
+					service: 'social',
+					operation: 'ensureUsersAreFriends',
+					userId: userId,
+					otherUserId: otherUserId,
+					upstreamStatusCode: response.statusCode
 				}
 			}
 		);
@@ -1728,49 +1832,89 @@ async function postJson(path, payload, operation, details) {
 	if (response.statusCode < 200 || response.statusCode >= 300) {
 		throw new AppError(
 			ERROR_CODES.INTERNAL_ERROR,
-			'notifications service error',
+			'social service error',
 			{
 				details: {
-					service: 'notifications',
-					operation: operation,
-					upstreamStatusCode: response.statusCode,
-					responseBody: response.body,
-					...details
+					service: 'social',
+					operation: 'ensureUsersAreFriends',
+					userId: userId,
+					otherUserId: otherUserId,
+					upstreamStatusCode: response.statusCode
 				}
 			}
 		);
 	}
 }
 
-async function createDmMessageNotification(message) {
-	return postJson(
-		'/internal/dm/message-created',
-		buildMessageCreatedPayload(message),
-		'createDmMessageNotification',
-		{
-			recipientUserId: message.otherUserId,
-			senderUserId: message.senderId,
-			messageId: message.messageId
-		}
-	);
-}
+module.exports = {
+	ensureUsersAreFriends
+};
+===== FILE: dm/src/clients/user.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
 
-async function markDmConversationRead(data) {
-	return postJson(
-		'/internal/dm/read',
-		buildReadPayload(data),
-		'markDmConversationRead',
-		{
-			readerUserId: data.senderId,
-			otherUserId: data.otherUserId,
-			readUpToMessageId: data.readUpToMessageId
-		}
-	);
+async function ensureUserExists(userId) {
+	let response;
+
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.user.host,
+			port: env.clients.user.port,
+			path: '/users/' + userId,
+			method: 'GET',
+			agent: agent
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'user service error',
+			{
+				cause: err,
+				details: {
+					service: 'user',
+					operation: 'ensureUserExists',
+					targetUserId: userId
+				}
+			}
+		);
+	}
+	if (response.statusCode === 404) {
+		throw new AppError(
+			ERROR_CODES.TARGET_USER_NOT_FOUND,
+			'target user not found',
+			{
+				details: {
+					service: 'user',
+					operation: 'ensureUserExists',
+					targetUserId: userId,
+					upstreamStatusCode: response.statusCode
+				}
+			}
+		);
+	}
+	if (response.statusCode < 200 || response.statusCode >= 300) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'user service error',
+			{
+				details: {
+					service: 'user',
+					operation: 'ensureUserExists',
+					targetUserId: userId,
+					upstreamStatusCode: response.statusCode
+				}
+			}
+		);
+	}
 }
 
 module.exports = {
-	createDmMessageNotification,
-	markDmConversationRead
+	ensureUserExists
 };
 ===== FILE: dm/src/errors/AppError.js =====
 class AppError extends Error {
@@ -1851,50 +1995,10 @@ function errorHandler(err, req, res, next) {
 }
 
 module.exports = errorHandler;
-===== FILE: dm/src/errors/notFound.js =====
-const AppError = require('./AppError');
-const ERROR_CODES = require('./errorCodes');
-
-function notFound(req, res, next) {
-	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
-}
-
-module.exports = notFound;
-===== FILE: dm-db/Dockerfile =====
-FROM postgres:18-alpine
-
-USER root
-
-RUN mkdir -p /etc/postgres/certs
-
-COPY certs/ca.crt /etc/postgres/certs/ca.crt
-COPY certs/dm-db.crt /etc/postgres/certs/dm-db.crt
-COPY certs/dm-db.key /etc/postgres/certs/dm-db.key
-COPY pg_hba.conf /etc/postgres/pg_hba.conf
-
-RUN chown postgres:postgres /etc/postgres/certs/dm-db.key /etc/postgres/certs/dm-db.crt /etc/postgres/certs/ca.crt \
-	&& chmod 600 /etc/postgres/certs/dm-db.key \
-	&& chmod 644 /etc/postgres/certs/dm-db.crt /etc/postgres/certs/ca.crt /etc/postgres/pg_hba.conf
-
-USER postgres
 ===== FILE: dm-db/pg_hba.conf =====
 local   all             all                                     trust
 hostssl dm              dm              all                     cert
 hostnossl all           all             all                     reject
-===== FILE: notifications/Dockerfile =====
-FROM node:24-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY prisma ./prisma
-COPY prisma.config.ts ./
-COPY src ./src
-COPY certs ./certs
-
-CMD ["npm", "run", "dev"]
 ===== FILE: notifications/package.json =====
 {
   "name": "notifications",
@@ -1927,20 +2031,14 @@ generator client {
 }
 
 model Notification {
-  id                 String    @id @default(uuid(7)) @db.Uuid
-  userId             String    @db.Uuid
-  type               String
-  actorUserId        String?   @db.Uuid
-  conversationUserId String?   @db.Uuid
-  messageId          String?   @db.Uuid
-  payload            Json
-  readAt             DateTime?
-  createdAt          DateTime  @default(now())
+  id          String   @id @default(uuid(7)) @db.Uuid
+  userId      String   @db.Uuid
+  type        String
+  actorUserId String?  @db.Uuid
+  payload     Json
+  createdAt   DateTime @default(now())
 
-  @@unique([userId, type, messageId])
   @@index([userId, id])
-  @@index([userId, readAt])
-  @@index([userId, conversationUserId, messageId])
 }
 ===== FILE: notifications/prisma.config.ts =====
 import "dotenv/config";
@@ -1954,6 +2052,7 @@ export default defineConfig({
 });
 ===== FILE: notifications/src/app.js =====
 const express = require('express');
+const env = require('./config/env');
 const notificationsRoutes = require('./routes/notifications.routes');
 const internalRoutes = require('./routes/internal.routes');
 const notFound = require('./errors/notFound');
@@ -1975,8 +2074,18 @@ function createApp() {
 
 	app.use(attachTlsContext);
 	app.use(httpLogger);
-	app.use('/notifications', requireCaller('realtime'), express.json(), notificationsRoutes);
-	app.use('/internal', requireCaller('dm'), express.json(), internalRoutes);
+	app.use(
+		'/notifications',
+		requireCaller('realtime'),
+		express.json(),
+		notificationsRoutes
+	);
+	app.use(
+		'/internal',
+		requireCaller(env.internal.allowedClientCns),
+		express.json(),
+		internalRoutes
+	);
 	app.use(notFound);
 	app.use(errorHandler);
 	return app;
@@ -2054,6 +2163,17 @@ function requireNumberEnv(name) {
 	return value;
 }
 
+function requireCsvEnv(name) {
+	const values = requireEnv(name)
+		.split(',')
+		.map((item) => item.trim())
+		.filter((item) => item !== '');
+
+	if (values.length === 0)
+		throw new Error('Environment variable must contain values: ' + name);
+	return values;
+}
+
 const env = {
 	service: {
 		name: requireEnv('SERVICE_NAME')
@@ -2061,6 +2181,9 @@ const env = {
 	http: {
 		host: requireEnv('HOST'),
 		port: requireNumberEnv('PORT')
+	},
+	internal: {
+		allowedClientCns: requireCsvEnv('INTERNAL_ALLOWED_CLIENT_CNS')
 	},
 	timeouts: {
 		upstreamRequestMs: requireNumberEnv('UPSTREAM_REQUEST_TIMEOUT_MS')
@@ -2144,6 +2267,89 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({adapter});
 
 module.exports = prisma;	
+===== FILE: notifications/src/log/logger.js =====
+function getCallerCommonName(req) {
+	const certificate = req.tls && req.tls.peerCertificate;
+
+	if (!certificate || !certificate.subject)
+		return undefined;
+	return certificate.subject.CN;
+}
+
+function buildHttpContext(req) {
+	return {
+		method: req.method,
+		path: req.originalUrl,
+		caller: getCallerCommonName(req),
+		authorized: req.tls && req.tls.authorized,
+		authorizationError: req.tls && req.tls.authorizationError
+	};
+}
+
+function serializeError(err) {
+	if (!err)
+		return undefined;
+	return {
+		name: err.name,
+		code: err.code,
+		message: err.message,
+		details: err.details,
+		stack: err.stack,
+		cause: serializeError(err.cause)
+	};
+}
+
+function logHttpRequestReceived(req) {
+	console.log('[notifications] request received', buildHttpContext(req));
+}
+
+function logHttpResponseSent(req, statusCode, payload) {
+	console.log('[notifications] response sent', {
+		...buildHttpContext(req),
+		statusCode: statusCode,
+		payload: payload
+	});
+}
+
+function logHttpRequestError(req, err) {
+	console.error('[notifications] request failed', {
+		...buildHttpContext(req),
+		error: serializeError(err)
+	});
+}
+
+function logError(label, err, context) {
+	console.error('[notifications] error', {
+		label: label,
+		context: context,
+		error: serializeError(err)
+	});
+}
+
+module.exports = {
+	logHttpRequestReceived,
+	logHttpResponseSent,
+	logHttpRequestError,
+	logError
+};
+===== FILE: notifications/src/middlewares/httpLogger.js =====
+const {
+	logHttpRequestReceived,
+	logHttpResponseSent
+} = require('../log/logger');
+
+function httpLogger(req, res, next) {
+	const originalJson = res.json.bind(res);
+
+	logHttpRequestReceived(req);
+	res.json = (payload) => {
+		logHttpResponseSent(req, res.statusCode, payload);
+		return originalJson(payload);
+	};
+	return next();
+}
+
+module.exports = httpLogger;
 ===== FILE: notifications/src/middlewares/requireCaller.js =====
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
@@ -2156,12 +2362,22 @@ function getCallerCommonName(req) {
 	return certificate.subject.CN;
 }
 
-function requireCaller(expectedCommonName) {
+function normalizeExpectedCommonNames(expectedCommonNames) {
+	if (Array.isArray(expectedCommonNames))
+		return expectedCommonNames;
+	return [expectedCommonNames];
+}
+
+function requireCaller(expectedCommonNames) {
+	const allowedCommonNames = normalizeExpectedCommonNames(
+		expectedCommonNames
+	);
+
 	return (req, res, next) => {
 		const caller = getCallerCommonName(req);
 
 		if (!req.tls || req.tls.authorized !== true
-			|| caller !== expectedCommonName) {
+			|| !allowedCommonNames.includes(caller)) {
 			return next(new AppError(
 				ERROR_CODES.UNAUTHORIZED_CALLER,
 				'unauthorized caller'
@@ -2178,37 +2394,34 @@ module.exports = {
 const express = require('express');
 const {
 	listNotifications,
-	markNotificationsRead
+	deleteNotifications
 } = require('../controllers/notifications.controller');
 
 const router = express.Router();
 
 router.get('/', listNotifications);
-router.post('/read', markNotificationsRead);
+router.post('/delete', deleteNotifications);
 
 module.exports = router;
 ===== FILE: notifications/src/routes/internal.routes.js =====
 const express = require('express');
 const {
-	createDmMessageNotification,
-	markDmConversationRead
+	createNotification
 } = require('../controllers/internal.controller');
 
 const router = express.Router();
 
-router.post('/dm/message-created', createDmMessageNotification);
-router.post('/dm/read', markDmConversationRead);
+router.post('/notifications', createNotification);
 
 module.exports = router;
 ===== FILE: notifications/src/controllers/notifications.controller.js =====
 const {
 	validateListNotifications,
-	validateMarkNotificationsRead
+	validateDeleteNotifications
 } = require('../validation/notifications.validation');
 const notificationsService = require('../services/notifications.service');
 
-function buildListNotificationsCommand(req)
-{
+function buildListNotificationsCommand(req) {
 	return {
 		userId: req.header('X-User-Id'),
 		limit: req.query.limit,
@@ -2216,16 +2429,14 @@ function buildListNotificationsCommand(req)
 	};
 }
 
-function buildMarkNotificationsReadCommand(req)
-{
+function buildDeleteNotificationsCommand(req) {
 	return {
 		userId: req.header('X-User-Id'),
 		notificationIds: req.body.notificationIds
 	};
 }
 
-function mapNotificationResponse(notification)
-{
+function mapNotificationResponse(notification) {
 	return {
 		notificationId: notification.notificationId,
 		type: notification.type,
@@ -2235,8 +2446,7 @@ function mapNotificationResponse(notification)
 	};
 }
 
-function buildListNotificationsResponse(result)
-{
+function buildListNotificationsResponse(result) {
 	return {
 		notifications: result.notifications.map(mapNotificationResponse),
 		page: {
@@ -2247,71 +2457,54 @@ function buildListNotificationsResponse(result)
 	};
 }
 
-async function listNotifications(req, res, next)
-{
+async function listNotifications(req, res, next) {
 	let command;
 	let result;
 
-	try
-	{
+	try {
 		command = validateListNotifications(
 			buildListNotificationsCommand(req)
 		);
 		result = await notificationsService.listNotifications(command);
 		return res.status(200).json(buildListNotificationsResponse(result));
 	}
-	catch (err)
-	{
+	catch (err) {
 		return next(err);
 	}
 }
 
-async function markNotificationsRead(req, res, next)
-{
+async function deleteNotifications(req, res, next) {
 	let command;
 	let result;
 
-	try
-	{
-		command = validateMarkNotificationsRead(
-			buildMarkNotificationsReadCommand(req)
+	try {
+		command = validateDeleteNotifications(
+			buildDeleteNotificationsCommand(req)
 		);
-		result = await notificationsService.markNotificationsRead(command);
+		result = await notificationsService.deleteNotifications(command);
 		return res.status(200).json(result);
 	}
-	catch (err)
-	{
+	catch (err) {
 		return next(err);
 	}
 }
 
 module.exports = {
 	listNotifications,
-	markNotificationsRead
+	deleteNotifications
 };
 ===== FILE: notifications/src/controllers/internal.controller.js =====
 const {
-	validateCreateDmMessageNotification,
-	validateMarkDmConversationRead
+	validateCreateNotification
 } = require('../validation/internal.validation');
 const notificationsService = require('../services/notifications.service');
 
-function buildCreateDmMessageNotificationCommand(req) {
+function buildCreateNotificationCommand(req) {
 	return {
 		recipientUserId: req.body.recipientUserId,
-		senderUserId: req.body.senderUserId,
-		messageId: req.body.messageId,
-		content: req.body.content,
-		clientMessageId: req.body.clientMsgId,
-		createdAt: req.body.createdAt
-	};
-}
-
-function buildMarkDmConversationReadCommand(req) {
-	return {
-		readerUserId: req.body.readerUserId,
-		otherUserId: req.body.otherUserId,
-		readUpToMessageId: req.body.readUpToMessageId
+		type: req.body.type,
+		actorUserId: req.body.actorUserId,
+		payload: req.body.payload
 	};
 }
 
@@ -2320,24 +2513,22 @@ function mapNotificationResponse(notification) {
 		notificationId: notification.notificationId,
 		type: notification.type,
 		actorUserId: notification.actorUserId,
-		readAt: notification.readAt,
 		createdAt: notification.createdAt,
 		payload: notification.payload
 	};
 }
 
-async function createDmMessageNotification(req, res, next) {
+async function createNotification(req, res, next) {
 	let command;
-	let result;
+	let notification;
 
 	try {
-		command = validateCreateDmMessageNotification(
-			buildCreateDmMessageNotificationCommand(req)
+		command = validateCreateNotification(
+			buildCreateNotificationCommand(req)
 		);
-		result = await notificationsService.createDmMessageNotification(command);
-		return res.status(result.created ? 201 : 200).json({
-			created: result.created,
-			notification: mapNotificationResponse(result.notification)
+		notification = await notificationsService.createNotification(command);
+		return res.status(201).json({
+			notification: mapNotificationResponse(notification)
 		});
 	}
 	catch (err) {
@@ -2345,45 +2536,49 @@ async function createDmMessageNotification(req, res, next) {
 	}
 }
 
-async function markDmConversationRead(req, res, next) {
-	let command;
-	let result;
-
-	try {
-		command = validateMarkDmConversationRead(
-			buildMarkDmConversationReadCommand(req)
-		);
-		result = await notificationsService.markDmConversationRead(command);
-		return res.status(200).json(result);
-	}
-	catch (err) {
-		return next(err);
-	}
-}
-
 module.exports = {
-	createDmMessageNotification,
-	markDmConversationRead
+	createNotification
 };
 ===== FILE: notifications/src/services/notifications.service.js =====
 const notificationsRepository = require('../repositories/notifications.repository');
 const realtimeClient = require('../clients/realtime.client');
 
-async function createDmMessageNotification(command) {
-	let result;
-
-	result = await notificationsRepository.createDmMessageNotification({
-		recipientUserId: command.recipientUserId,
-		senderUserId: command.senderUserId,
-		messageId: command.messageId,
-		content: command.content,
-		clientMessageId: command.clientMessageId,
-		createdAt: command.createdAt
+function logSideEffectFailure(operation, err, details) {
+	console.error('[notifications] side effect failed', {
+		operation: operation,
+		code: err && err.code,
+		message: err && err.message,
+		details: details
 	});
-	if (result.created) {
-		await realtimeClient.pushNotificationCreated(result.notification);
+}
+
+async function runBestEffort(operation, details, fn) {
+	try {
+		await fn();
 	}
-	return result;
+	catch (err) {
+		logSideEffectFailure(operation, err, details);
+	}
+}
+
+async function createNotification(command) {
+	let notification;
+
+	notification = await notificationsRepository.createNotification({
+		recipientUserId: command.recipientUserId,
+		type: command.type,
+		actorUserId: command.actorUserId,
+		payload: command.payload
+	});
+	await runBestEffort(
+		'pushNotificationCreated',
+		{
+			targetUserId: notification.userId,
+			notificationId: notification.notificationId
+		},
+		() => realtimeClient.pushNotificationCreated(notification)
+	);
+	return notification;
 }
 
 async function listNotifications(command) {
@@ -2394,44 +2589,20 @@ async function listNotifications(command) {
 	});
 }
 
-async function markNotificationsRead(command) {
-	return notificationsRepository.markNotificationsRead({
+async function deleteNotifications(command) {
+	return notificationsRepository.deleteNotifications({
 		userId: command.userId,
 		notificationIds: command.notificationIds
 	});
 }
 
-async function markDmConversationRead(command) {
-	return notificationsRepository.markDmConversationRead({
-		readerUserId: command.readerUserId,
-		otherUserId: command.otherUserId,
-		readUpToMessageId: command.readUpToMessageId
-	});
-}
-
 module.exports = {
-	createDmMessageNotification,
+	createNotification,
 	listNotifications,
-	markNotificationsRead,
-	markDmConversationRead
+	deleteNotifications
 };
 ===== FILE: notifications/src/repositories/notifications.repository.js =====
 const prisma = require('../db/prisma');
-
-const DM_MESSAGE_RECEIVED = 'dm.message.received';
-
-function buildDmMessagePayload(data) {
-	return {
-		otherUserId: data.senderUserId,
-		message: {
-			messageId: data.messageId,
-			senderId: data.senderUserId,
-			content: data.content,
-			clientMsgId: data.clientMessageId,
-			createdAt: data.createdAt
-		}
-	};
-}
 
 function mapNotification(notification) {
 	return {
@@ -2439,57 +2610,22 @@ function mapNotification(notification) {
 		userId: notification.userId,
 		type: notification.type,
 		actorUserId: notification.actorUserId,
-		readAt: notification.readAt,
 		createdAt: notification.createdAt,
 		payload: notification.payload
 	};
 }
 
-function isUniqueConstraintError(err) {
-	return err && err.code === 'P2002';
-}
-
-async function findExistingDmMessageNotification(data) {
-	return prisma.notification.findFirst({
-		where: {
+async function createNotification(data) {
+	const notification = await prisma.notification.create({
+		data: {
 			userId: data.recipientUserId,
-			type: DM_MESSAGE_RECEIVED,
-			messageId: data.messageId
+			type: data.type,
+			actorUserId: data.actorUserId,
+			payload: data.payload
 		}
 	});
-}
 
-async function createDmMessageNotification(data) {
-	let notification;
-
-	try {
-		notification = await prisma.notification.create({
-			data: {
-				userId: data.recipientUserId,
-				type: DM_MESSAGE_RECEIVED,
-				actorUserId: data.senderUserId,
-				conversationUserId: data.senderUserId,
-				messageId: data.messageId,
-				payload: buildDmMessagePayload(data)
-			}
-		});
-		return {
-			created: true,
-			notification: mapNotification(notification)
-		};
-	}
-	catch (err) {
-		if (!isUniqueConstraintError(err))
-			throw err;
-		notification = await findExistingDmMessageNotification(data);
-		if (notification) {
-			return {
-				created: false,
-				notification: mapNotification(notification)
-			};
-		}
-		throw err;
-	}
+	return mapNotification(notification);
 }
 
 async function listNotifications(data) {
@@ -2527,56 +2663,25 @@ async function listNotifications(data) {
 	};
 }
 
-async function markNotificationsRead(data) {
-	const readAt = new Date();
-	const result = await prisma.notification.updateMany({
+async function deleteNotifications(data) {
+	const result = await prisma.notification.deleteMany({
 		where: {
 			userId: data.userId,
 			id: {
 				in: data.notificationIds
-			},
-			readAt: null
-		},
-		data: {
-			readAt: readAt
+			}
 		}
 	});
 
 	return {
-		markedCount: result.count
-	};
-}
-
-async function markDmConversationRead(data) {
-	const readAt = new Date();
-	const result = await prisma.notification.updateMany({
-		where: {
-			userId: data.readerUserId,
-			type: DM_MESSAGE_RECEIVED,
-			conversationUserId: data.otherUserId,
-			messageId: {
-				lte: data.readUpToMessageId
-			},
-			readAt: null
-		},
-		data: {
-			readAt: readAt
-		}
-	});
-
-	return {
-		readerUserId: data.readerUserId,
-		otherUserId: data.otherUserId,
-		readUpToMessageId: data.readUpToMessageId,
-		markedCount: result.count
+		deletedCount: result.count
 	};
 }
 
 module.exports = {
-	createDmMessageNotification,
+	createNotification,
 	listNotifications,
-	markNotificationsRead,
-	markDmConversationRead
+	deleteNotifications
 };
 ===== FILE: notifications/src/validation/notifications.validation.js =====
 const AppError = require('../errors/AppError');
@@ -2676,7 +2781,7 @@ function validateListNotifications(command) {
 	};
 }
 
-function validateMarkNotificationsRead(command) {
+function validateDeleteNotifications(command) {
 	if (!command || typeof command !== 'object') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
@@ -2691,7 +2796,7 @@ function validateMarkNotificationsRead(command) {
 
 module.exports = {
 	validateListNotifications,
-	validateMarkNotificationsRead
+	validateDeleteNotifications
 };
 ===== FILE: notifications/src/validation/internal.validation.js =====
 const AppError = require('../errors/AppError');
@@ -2722,27 +2827,37 @@ function validateUuidField(value, fieldName, requiredMessage) {
 	return value;
 }
 
-function validateContent(value) {
+function validateOptionalUuidField(value, fieldName) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		fieldName,
+		fieldName + ' is required'
+	);
+}
+
+function validateType(value) {
 	if (typeof value !== 'string' || value.trim() === '') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
-			'content is required'
+			'type is required'
+		);
+	}
+	return value.trim();
+}
+
+function validatePayload(value) {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'payload must be a JSON object'
 		);
 	}
 	return value;
 }
 
-function validateCreatedAt(value) {
-	if (typeof value !== 'string' || value.trim() === '') {
-		throw new AppError(
-			ERROR_CODES.INVALID_ARGUMENT,
-			'createdAt is required'
-		);
-	}
-	return value;
-}
-
-function validateCreateDmMessageNotification(command) {
+function validateCreateNotification(command) {
 	if (!command || typeof command !== 'object') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
@@ -2755,55 +2870,17 @@ function validateCreateDmMessageNotification(command) {
 			'recipientUserId',
 			'recipientUserId is required'
 		),
-		senderUserId: validateUuidField(
-			command.senderUserId,
-			'senderUserId',
-			'senderUserId is required'
+		type: validateType(command.type),
+		actorUserId: validateOptionalUuidField(
+			command.actorUserId,
+			'actorUserId'
 		),
-		messageId: validateUuidField(
-			command.messageId,
-			'messageId',
-			'messageId is required'
-		),
-		content: validateContent(command.content),
-		clientMessageId: validateUuidField(
-			command.clientMessageId,
-			'clientMsgId',
-			'clientMsgId is required'
-		),
-		createdAt: validateCreatedAt(command.createdAt)
-	};
-}
-
-function validateMarkDmConversationRead(command) {
-	if (!command || typeof command !== 'object') {
-		throw new AppError(
-			ERROR_CODES.INVALID_ARGUMENT,
-			'input is required'
-		);
-	}
-	return {
-		readerUserId: validateUuidField(
-			command.readerUserId,
-			'readerUserId',
-			'readerUserId is required'
-		),
-		otherUserId: validateUuidField(
-			command.otherUserId,
-			'otherUserId',
-			'otherUserId is required'
-		),
-		readUpToMessageId: validateUuidField(
-			command.readUpToMessageId,
-			'readUpToMessageId',
-			'readUpToMessageId is required'
-		)
+		payload: validatePayload(command.payload)
 	};
 }
 
 module.exports = {
-	validateCreateDmMessageNotification,
-	validateMarkDmConversationRead
+	validateCreateNotification
 };
 ===== FILE: notifications/src/clients/https.agent.js =====
 const https = require('https');
@@ -2876,7 +2953,6 @@ function buildPublicNotification(notification) {
 		notificationId: notification.notificationId,
 		type: notification.type,
 		actorUserId: notification.actorUserId,
-		readAt: notification.readAt,
 		createdAt: notification.createdAt,
 		payload: notification.payload
 	};
@@ -3021,48 +3097,10 @@ function errorHandler(err, req, res, next) {
 }
 
 module.exports = errorHandler;
-===== FILE: notifications/src/errors/notFound.js =====
-const AppError = require('./AppError');
-const ERROR_CODES = require('./errorCodes');
-
-function notFound(req, res, next) {
-	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
-}
-
-module.exports = notFound;
-===== FILE: notifications-db/Dockerfile =====
-FROM postgres:18-alpine
-
-USER root
-
-RUN mkdir -p /etc/postgres/certs
-
-COPY certs/ca.crt /etc/postgres/certs/ca.crt
-COPY certs/notifications-db.crt /etc/postgres/certs/notifications-db.crt
-COPY certs/notifications-db.key /etc/postgres/certs/notifications-db.key
-COPY pg_hba.conf /etc/postgres/pg_hba.conf
-
-RUN chown postgres:postgres /etc/postgres/certs/notifications-db.key /etc/postgres/certs/notifications-db.crt /etc/postgres/certs/ca.crt \
-	&& chmod 600 /etc/postgres/certs/notifications-db.key \
-	&& chmod 644 /etc/postgres/certs/notifications-db.crt /etc/postgres/certs/ca.crt /etc/postgres/pg_hba.conf
-
-USER postgres
 ===== FILE: notifications-db/pg_hba.conf =====
 local   all             all                                     trust
 hostssl notifications              notifications              all                     cert
 hostnossl all           all             all                     reject
-===== FILE: realtime/Dockerfile =====
-FROM node:24-alpine
-
-WORKDIR /app
-
-COPY package*.json ./
-RUN npm install
-
-COPY src ./src
-COPY certs ./certs
-
-CMD ["npm", "run", "dev"]
 ===== FILE: realtime/package.json =====
 {
   "name": "realtime",
@@ -3135,8 +3173,8 @@ function createInternalApp() {
 	const app = express();
 
 	app.use(httpLogger);
-	app.use(express.json());
 	app.use(requireInternalClientAuth);
+	app.use(express.json());
 	app.use('/internal', internalRoutes);
 	app.use(notFound);
 	app.use(errorHandler);
@@ -3354,6 +3392,106 @@ module.exports = {
 	buildInternalServerTlsOptions,
 	buildClientTlsOptions
 };
+===== FILE: realtime/src/log/logger.js =====
+function getHttpCallerCommonName(req) {
+	const certificate = req.socket && req.socket.getPeerCertificate
+		? req.socket.getPeerCertificate()
+		: undefined;
+
+	if (!certificate || !certificate.subject)
+		return undefined;
+	return certificate.subject.CN;
+}
+
+function buildHttpContext(req) {
+	return {
+		method: req.method,
+		path: req.originalUrl,
+		caller: getHttpCallerCommonName(req),
+		authorized: req.socket && req.socket.authorized,
+		authorizationError: req.socket && req.socket.authorizationError
+	};
+}
+
+function buildWsContext(ws) {
+	return {
+		userId: ws.userId,
+		authenticated: ws.authenticated === true,
+		remoteAddress: ws._socket && ws._socket.remoteAddress
+	};
+}
+
+function serializeError(err) {
+	if (!err)
+		return undefined;
+	return {
+		name: err.name,
+		code: err.code,
+		message: err.message,
+		details: err.details,
+		stack: err.stack,
+		cause: serializeError(err.cause)
+	};
+}
+
+function logHttpRequestReceived(req) {
+	console.log('[realtime] request received', buildHttpContext(req));
+}
+
+function logHttpResponseSent(req, statusCode, payload) {
+	console.log('[realtime] response sent', {
+		...buildHttpContext(req),
+		statusCode: statusCode,
+		payload: payload
+	});
+}
+
+function logHttpRequestError(req, err) {
+	console.error('[realtime] request failed', {
+		...buildHttpContext(req),
+		error: serializeError(err)
+	});
+}
+
+function logWsFrameReceived(ws, frame) {
+	console.log('[realtime] ws frame received', {
+		...buildWsContext(ws),
+		frame: frame
+	});
+}
+
+function logWsFrameSent(ws, frame) {
+	console.log('[realtime] ws frame sent', {
+		...buildWsContext(ws),
+		frame: frame
+	});
+}
+
+module.exports = {
+	logHttpRequestReceived,
+	logHttpResponseSent,
+	logHttpRequestError,
+	logWsFrameReceived,
+	logWsFrameSent
+};
+===== FILE: realtime/src/middlewares/httpLogger.js =====
+const {
+	logHttpRequestReceived,
+	logHttpResponseSent
+} = require('../log/logger');
+
+function httpLogger(req, res, next) {
+	const originalJson = res.json.bind(res);
+
+	logHttpRequestReceived(req);
+	res.json = (payload) => {
+		logHttpResponseSent(req, res.statusCode, payload);
+		return originalJson(payload);
+	};
+	return next();
+}
+
+module.exports = httpLogger;
 ===== FILE: realtime/src/middlewares/internalClientAuth.js =====
 const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
@@ -3591,10 +3729,10 @@ async function dispatch(frameType, userId, command) {
 			})
 		};
 	}
-	if (frameType === 'notifications.read') {
+	if (frameType === 'notifications.delete') {
 		return {
-			type: 'notifications.read.ok',
-			data: await notificationsClient.markNotificationsRead({
+			type: 'notifications.delete.ok',
+			data: await notificationsClient.deleteNotifications({
 				userId: userId,
 				notificationIds: command.notificationIds
 			})
@@ -3762,16 +3900,6 @@ function validateOptionalCursor(value) {
 	);
 }
 
-function validateOptionalNotificationCursor(value) {
-	if (value === undefined)
-		return undefined;
-	return validateUuidField(
-		value,
-		'cursor',
-		'cursor is required'
-	);
-}
-
 function validateOptionalMessageId(value, fieldName) {
 	if (value === undefined)
 		return undefined;
@@ -3894,11 +4022,11 @@ function validateNotificationsListFrame(frame) {
 	return {
 		requestId: validateOptionalRequestId(frame.requestId),
 		limit: validateOptionalLimit(frame.limit),
-		cursor: validateOptionalNotificationCursor(frame.cursor)
+		cursor: validateOptionalCursor(frame.cursor)
 	};
 }
 
-function validateNotificationsReadFrame(frame) {
+function validateNotificationsDeleteFrame(frame) {
 	return {
 		requestId: validateOptionalRequestId(frame.requestId),
 		notificationIds: validateUuidArray(
@@ -3919,8 +4047,8 @@ function validateAuthenticatedFrame(frame) {
 		return validateDmReadFrame(frame);
 	if (frame.type === 'notifications.list')
 		return validateNotificationsListFrame(frame);
-	if (frame.type === 'notifications.read')
-		return validateNotificationsReadFrame(frame);
+	if (frame.type === 'notifications.delete')
+		return validateNotificationsDeleteFrame(frame);
 	throw new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type');
 }
 
@@ -4318,11 +4446,11 @@ async function listNotifications(command) {
 	});
 }
 
-async function markNotificationsRead(command) {
+async function deleteNotifications(command) {
 	return performRequest({
-		operation: 'markNotificationsRead',
+		operation: 'deleteNotifications',
 		method: 'POST',
-		path: '/notifications/read',
+		path: '/notifications/delete',
 		headers: buildHeaders(command.userId, true),
 		body: JSON.stringify({
 			notificationIds: command.notificationIds
@@ -4332,7 +4460,7 @@ async function markNotificationsRead(command) {
 
 module.exports = {
 	listNotifications,
-	markNotificationsRead
+	deleteNotifications
 };
 ===== FILE: realtime/src/ws/attachWebSocketServer.js =====
 const {WebSocketServer} = require('ws');
@@ -4586,6 +4714,10 @@ module.exports = ERROR_CODES;
 const ERROR_CODES = require('./errorCodes');
 const {logHttpRequestError} = require('../log/logger');
 
+function isJsonParseError(err) {
+	return err && err.type === 'entity.parse.failed';
+}
+
 function getStatusCode(code) {
 	if (code === ERROR_CODES.INVALID_ARGUMENT)
 		return 400;
@@ -4597,12 +4729,16 @@ function getStatusCode(code) {
 }
 
 function getErrorCode(err) {
+	if (isJsonParseError(err))
+		return ERROR_CODES.INVALID_ARGUMENT;
 	if (err && err.code)
 		return err.code;
 	return ERROR_CODES.INTERNAL_ERROR;
 }
 
 function getResponseMessage(err, statusCode) {
+	if (isJsonParseError(err))
+		return 'invalid JSON body';
 	if (statusCode === 500)
 		return 'Internal server error';
 	return err.message;
@@ -4613,7 +4749,6 @@ function errorHandler(err, req, res, next) {
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
-	// log complet côté serveur, réponse simple côté client.
 	logHttpRequestError(req, err);
 	return res.status(statusCode).json({
 		code: code,
@@ -4622,137 +4757,3 @@ function errorHandler(err, req, res, next) {
 }
 
 module.exports = errorHandler;
-===== FILE: realtime/src/errors/notFound.js =====
-const AppError = require('./AppError');
-const ERROR_CODES = require('./errorCodes');
-
-function notFound(req, res, next) {
-	return next(new AppError(ERROR_CODES.NOT_FOUND, 'Route not found'));
-}
-
-module.exports = notFound;
-===== FILE: ws-test/connect.sh =====
-#!/bin/sh
-set -eu
-
-TOKEN="$(node /work/gen-token.js "$@")"
-
-printf '[ws-test] connecting to %s\n' "${WS_URL}"
-printf '[ws-test] sending auth frame automatically\n'
-
-(
-	printf '{"type":"auth","token":"%s"}\n' "${TOKEN}"
-	cat
-) | wscat -k -c "${WS_URL}"
-===== FILE: ws-test/gen-auth-frame.js =====
-const crypto = require('crypto');
-
-function fail(message) {
-	console.error(message);
-	process.exit(1);
-}
-
-function base64UrlJson(value) {
-	return Buffer.from(JSON.stringify(value)).toString('base64url');
-}
-
-function main() {
-	let secret;
-	let userId;
-	let ttlSeconds;
-	let now;
-	let header;
-	let payload;
-	let unsignedToken;
-	let signature;
-	let token;
-
-	secret = process.env.WS_TOKEN_SECRET;
-	userId = process.argv[2] || process.env.WS_TEST_USER_ID;
-	ttlSeconds = Number(process.argv[3] || process.env.WS_TOKEN_TTL_SECONDS || 315360000);
-	if (!secret)
-		fail('Missing WS_TOKEN_SECRET');
-	if (!userId)
-		fail('Missing WS_TEST_USER_ID');
-	if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0)
-		fail('Invalid WS_TOKEN_TTL_SECONDS');
-	now = Math.floor(Date.now() / 1000);
-	header = base64UrlJson({
-		alg: 'HS256',
-		typ: 'JWT'
-	});
-	payload = base64UrlJson({
-		sub: userId,
-		exp: now + ttlSeconds
-	});
-	unsignedToken = header + '.' + payload;
-	signature = crypto
-		.createHmac('sha256', secret)
-		.update(unsignedToken)
-		.digest('base64url');
-	token = unsignedToken + '.' + signature;
-	console.log(JSON.stringify({
-		type: 'auth',
-		token: token
-	}));
-}
-
-main();
-===== FILE: ws-test/gen-token.js =====
-const crypto = require('crypto');
-
-function fail(message) {
-	console.error(message);
-	process.exit(1);
-}
-
-function base64UrlJson(value) {
-	return Buffer.from(JSON.stringify(value)).toString('base64url');
-}
-
-function main() {
-	let secret;
-	let userId;
-	let ttlSeconds;
-	let now;
-	let header;
-	let payload;
-	let unsignedToken;
-	let signature;
-	let token;
-
-	secret = process.env.WS_TOKEN_SECRET;
-	userId = process.argv[2] || process.env.WS_TEST_USER_ID;
-	ttlSeconds = Number(process.argv[3] || process.env.WS_TOKEN_TTL_SECONDS || 315360000);
-	if (!secret)
-		fail('Missing WS_TOKEN_SECRET');
-	if (!userId)
-		fail('Missing WS_TEST_USER_ID');
-	if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0)
-		fail('ttlSeconds must be a positive integer');
-	now = Math.floor(Date.now() / 1000);
-	header = base64UrlJson({
-		alg: 'HS256',
-		typ: 'JWT'
-	});
-	payload = base64UrlJson({
-		sub: userId,
-		exp: now + ttlSeconds
-	});
-	unsignedToken = header + '.' + payload;
-	signature = crypto
-		.createHmac('sha256', secret)
-		.update(unsignedToken)
-		.digest('base64url');
-	token = unsignedToken + '.' + signature;
-	console.log(token);
-}
-
-main();
-===== FILE: ws-test/package.json =====
-{
-  "name": "ws-test",
-  "version": "1.0.0",
-  "private": true,
-  "dependencies": {}
-}

@@ -19,7 +19,7 @@ function buildPushPayload(notification) {
 	return {
 		userIds: [notification.userId],
 		frame: {
-			type: 'notification.created',
+			type: 'notifications.created',
 			data: {
 				notification: buildPublicNotification(notification)
 			}

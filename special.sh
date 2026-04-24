@@ -1,48 +1,50 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-OUT="${1:-context_min.txt}"
+OUT="${1:-context_contract.txt}"
 
-FILES=(
+TREE_PATHS=(
+	"compose.yaml"
+	"dm/prisma"
+	"dm/src"
+	"notifications/prisma"
+	"notifications/src"
+	"realtime/src"
+)
+
+PUBLIC_WS_FILES=(
 	"compose.yaml"
 
-	"dm/Dockerfile"
-	"dm/package.json"
+	"realtime/src/services/auth.service.js"
+	"realtime/src/services/dispatch.service.js"
+	"realtime/src/validation/ws.validation.js"
+	"realtime/src/ws/attachWebSocketServer.js"
+	"realtime/src/ws/message.handler.js"
+	"realtime/src/ws/send.js"
+)
+
+REALTIME_INTERNAL_FILES=(
+	"realtime/src/routes/internal.routes.js"
+	"realtime/src/controllers/push.controller.js"
+	"realtime/src/services/push.service.js"
+	"realtime/src/services/registry.service.js"
+	"realtime/src/validation/push.validation.js"
+	"realtime/src/middlewares/internalClientAuth.js"
+)
+
+DM_FILES=(
 	"dm/prisma/schema.prisma"
-	"dm/prisma.config.ts"
-	"dm/src/app.js"
-	"dm/src/server.js"
-	"dm/src/config/env.js"
-	"dm/src/config/tls.js"
-	"dm/src/db/prisma.js"
-	"dm/src/middlewares/requireCaller.js"
 	"dm/src/routes/dm.routes.js"
 	"dm/src/controllers/dm.controller.js"
 	"dm/src/services/dm.service.js"
 	"dm/src/repositories/dm.repository.js"
 	"dm/src/validation/dm.validation.js"
-	"dm/src/clients/https.agent.js"
-	"dm/src/clients/https.request.js"
+	"dm/src/middlewares/requireCaller.js"
 	"dm/src/clients/realtime.client.js"
-	"dm/src/clients/notifications.client.js"
-	"dm/src/errors/AppError.js"
-	"dm/src/errors/errorCodes.js"
-	"dm/src/errors/errorHandler.js"
-	"dm/src/errors/notFound.js"
+)
 
-	"dm-db/Dockerfile"
-	"dm-db/pg_hba.conf"
-
-	"notifications/Dockerfile"
-	"notifications/package.json"
+NOTIFICATIONS_FILES=(
 	"notifications/prisma/schema.prisma"
-	"notifications/prisma.config.ts"
-	"notifications/src/app.js"
-	"notifications/src/server.js"
-	"notifications/src/config/env.js"
-	"notifications/src/config/tls.js"
-	"notifications/src/db/prisma.js"
-	"notifications/src/middlewares/requireCaller.js"
 	"notifications/src/routes/notifications.routes.js"
 	"notifications/src/routes/internal.routes.js"
 	"notifications/src/controllers/notifications.controller.js"
@@ -51,61 +53,13 @@ FILES=(
 	"notifications/src/repositories/notifications.repository.js"
 	"notifications/src/validation/notifications.validation.js"
 	"notifications/src/validation/internal.validation.js"
-	"notifications/src/clients/https.agent.js"
-	"notifications/src/clients/https.request.js"
+	"notifications/src/middlewares/requireCaller.js"
 	"notifications/src/clients/realtime.client.js"
-	"notifications/src/errors/AppError.js"
-	"notifications/src/errors/errorCodes.js"
-	"notifications/src/errors/errorHandler.js"
-	"notifications/src/errors/notFound.js"
-
-	"notifications-db/Dockerfile"
-	"notifications-db/pg_hba.conf"
-
-	"realtime/Dockerfile"
-	"realtime/package.json"
-	"realtime/src/server.js"
-	"realtime/src/apps/front.app.js"
-	"realtime/src/apps/internal.app.js"
-	"realtime/src/servers/front.server.js"
-	"realtime/src/servers/internal.server.js"
-	"realtime/src/config/env.js"
-	"realtime/src/config/tls.js"
-	"realtime/src/middlewares/internalClientAuth.js"
-	"realtime/src/routes/internal.routes.js"
-	"realtime/src/controllers/push.controller.js"
-	"realtime/src/services/auth.service.js"
-	"realtime/src/services/dispatch.service.js"
-	"realtime/src/services/push.service.js"
-	"realtime/src/services/registry.service.js"
-	"realtime/src/validation/ws.validation.js"
-	"realtime/src/validation/push.validation.js"
-	"realtime/src/clients/https.agent.js"
-	"realtime/src/clients/https.request.js"
-	"realtime/src/clients/dm.client.js"
-	"realtime/src/clients/notifications.client.js"
-	"realtime/src/ws/attachWebSocketServer.js"
-	"realtime/src/ws/message.handler.js"
-	"realtime/src/ws/send.js"
-	"realtime/src/errors/AppError.js"
-	"realtime/src/errors/errorCodes.js"
-	"realtime/src/errors/errorHandler.js"
-	"realtime/src/errors/notFound.js"
-
-	"ws-test/connect.sh"
-	"ws-test/gen-auth-frame.js"
-	"ws-test/gen-token.js"
-	"ws-test/package.json"
 )
 
-TREE_PATHS=(
-	"compose.yaml"
-	"dm"
-	"dm-db"
-	"notifications"
-	"notifications-db"
-	"realtime"
-	"ws-test"
+REALTIME_TO_SERVICES_FILES=(
+	"realtime/src/clients/dm.client.js"
+	"realtime/src/clients/notifications.client.js"
 )
 
 append_file()
@@ -118,13 +72,24 @@ append_file()
 	printf '\n'
 }
 
+append_section()
+{
+	local title="$1"
+	shift
+
+	printf '===== SECTION: %s =====\n\n' "$title"
+	for f in "$@"; do
+		append_file "$f"
+	done
+}
+
 {
 	printf '===== TREE =====\n'
 	for path in "${TREE_PATHS[@]}"; do
 		[[ -e "$path" ]] || continue
 		if command -v tree >/dev/null 2>&1; then
 			tree "$path" \
-				-I 'node_modules|certs|*.crt|*.key|*.p12|package-lock.json' \
+				-I 'node_modules|certs|*.crt|*.key|*.p12|package-lock.json|notFound.js|Dockerfile|init|ws-test|log|errors|db|server.js|app.js|httpLogger.js|https.agent.js|https.request.js|package.json|prisma.config.ts|env.js|tls.js' \
 				|| true
 		else
 			find "$path" \
@@ -134,14 +99,32 @@ append_file()
 				-not -name '*.key' \
 				-not -name '*.p12' \
 				-not -name 'package-lock.json' \
+				-not -name 'notFound.js' \
+				-not -name 'Dockerfile' \
+				-not -path '*/init/*' \
+				-not -path '*/ws-test/*' \
+				-not -path '*/log/*' \
+				-not -path '*/errors/*' \
+				-not -path '*/db/*' \
+				-not -name 'server.js' \
+				-not -name 'app.js' \
+				-not -name 'httpLogger.js' \
+				-not -name 'https.agent.js' \
+				-not -name 'https.request.js' \
+				-not -name 'package.json' \
+				-not -name 'prisma.config.ts' \
+				-not -name 'env.js' \
+				-not -name 'tls.js' \
 				| sort
 		fi
 		printf '\n'
 	done
 
-	for f in "${FILES[@]}"; do
-		append_file "$f"
-	done
+	append_section "PUBLIC WS API" "${PUBLIC_WS_FILES[@]}"
+	append_section "REALTIME INTERNAL PUSH API" "${REALTIME_INTERNAL_FILES[@]}"
+	append_section "DM SERVICE API + LOGIC" "${DM_FILES[@]}"
+	append_section "NOTIFICATIONS SERVICE API + LOGIC" "${NOTIFICATIONS_FILES[@]}"
+	append_section "REALTIME -> SERVICES CLIENT CONTRACTS" "${REALTIME_TO_SERVICES_FILES[@]}"
 } > "$OUT"
 
 echo "Wrote $OUT"

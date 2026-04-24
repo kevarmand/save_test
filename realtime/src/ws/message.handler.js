@@ -39,7 +39,7 @@ async function handleAuthenticatedFrame(ws, frame) {
 	let responseFrame;
 
 	command = validateAuthenticatedFrame(frame);
-	responseFrame = await dispatchService.dispatch(frame.type, ws.userId, command);
+	responseFrame = await dispatchService.dispatch(ws.userId, command);
 	if (command.requestId !== undefined)
 		responseFrame.requestId = command.requestId;
 	sendJson(ws, responseFrame);

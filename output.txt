@@ -1,0 +1,1237 @@
+===== FILE: dm/src/app.js =====
+const express = require('express');
+const dmRoutes = require('./routes/dm.routes');
+const notFound = require('./errors/notFound');
+const errorHandler = require('./errors/errorHandler');
+const {requireCaller} = require('./middlewares/requireCaller');
+const httpLogger = require('./middlewares/httpLogger');
+
+function attachTlsContext(req, res, next) {
+	req.tls = {
+		authorized: req.client.authorized,
+		authorizationError: req.client.authorizationError,
+		peerCertificate: req.socket.getPeerCertificate()
+	};
+	next();
+}
+
+function createApp() {
+	const app = express();
+
+	app.use(attachTlsContext);
+	app.use(httpLogger);
+	app.use('/dm', requireCaller('realtime'), express.json(), dmRoutes);
+	app.use(notFound);
+	app.use(errorHandler);
+
+	return app;
+}
+
+module.exports = createApp;
+
+===== FILE: dm/src/routes/dm.routes.js =====
+const express = require('express');
+const {
+	createMessageByUser,
+	listMessagesByUser,
+	markConversationReadByUser,
+	listConversations
+} = require('../controllers/dm.controller');
+
+const router = express.Router();
+
+router.get('/conversations', listConversations);
+router.post('/users/:otherUserId/messages', createMessageByUser);
+router.get('/users/:otherUserId/messages', listMessagesByUser);
+router.post('/users/:otherUserId/read', markConversationReadByUser);
+
+module.exports = router;
+
+===== FILE: dm/src/controllers/dm.controller.js =====
+const {
+	validateCreateMessage,
+	validateListMessages,
+	validateMarkConversationRead,
+	validateListConversations
+} = require('../validation/dm.validation');
+const dmService = require('../services/dm.service');
+
+function buildCreateMessageCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		otherUserId: req.params.otherUserId,
+		content: req.body.content,
+		clientMessageId: req.body.clientMsgId
+	};
+}
+
+function buildListMessagesCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		otherUserId: req.params.otherUserId,
+		limit: req.query.limit,
+		beforeMessageId: req.query.beforeMessageId
+	};
+}
+
+function buildMarkConversationReadCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		otherUserId: req.params.otherUserId,
+		messageId: req.body.messageId
+	};
+}
+
+function buildListConversationsCommand(req) {
+	return {
+		senderId: req.header('X-User-Id'),
+		limit: req.query.limit,
+		cursor: req.query.cursor
+	};
+}
+
+function mapMessageResponse(message) {
+	return {
+		messageId: message.messageId,
+		senderId: message.senderId,
+		content: message.content,
+		clientMsgId: message.clientMessageId,
+		createdAt: message.createdAt
+	};
+}
+
+function buildCreateMessageResponse(message) {
+	return {
+		messageId: message.messageId,
+		otherUserId: message.otherUserId,
+		senderId: message.senderId,
+		content: message.content,
+		clientMsgId: message.clientMessageId,
+		createdAt: message.createdAt
+	};
+}
+
+function buildListMessagesResponse(result) {
+	return {
+		otherUserId: result.otherUserId,
+		messages: result.messages.map(mapMessageResponse),
+		page: {
+			limit: result.limit,
+			hasMore: result.hasMore,
+			nextBeforeMessageId: result.nextBeforeMessageId
+		}
+	};
+}
+
+function buildMarkConversationReadResponse(result) {
+	return {
+		otherUserId: result.otherUserId,
+		readUpToMessageId: result.readUpToMessageId
+	};
+}
+
+function buildConversationResponse(conversation) {
+	return {
+		otherUserId: conversation.otherUserId,
+		lastReadMessageId: conversation.lastReadMessageId,
+		unreadCount: conversation.unreadCount,
+		lastMessage: conversation.lastMessage
+			? mapMessageResponse(conversation.lastMessage)
+			: null
+	};
+}
+
+function buildListConversationsResponse(result) {
+	return {
+		conversations: result.conversations.map(buildConversationResponse),
+		page: {
+			limit: result.limit,
+			hasMore: result.hasMore,
+			nextCursor: result.nextCursor
+		}
+	};
+}
+
+async function createMessageByUser(req, res, next) {
+	let command;
+	let message;
+
+	try {
+		command = validateCreateMessage(buildCreateMessageCommand(req));
+		message = await dmService.createMessage(command);
+		return res.status(201).json(buildCreateMessageResponse(message));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+async function listMessagesByUser(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateListMessages(buildListMessagesCommand(req));
+		result = await dmService.listMessages(command);
+		return res.status(200).json(buildListMessagesResponse(result));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+async function markConversationReadByUser(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateMarkConversationRead(
+			buildMarkConversationReadCommand(req)
+		);
+		result = await dmService.markConversationRead(command);
+		return res.status(200).json(buildMarkConversationReadResponse(result));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+async function listConversations(req, res, next) {
+	let command;
+	let result;
+
+	try {
+		command = validateListConversations(buildListConversationsCommand(req));
+		result = await dmService.listConversations(command);
+		return res.status(200).json(buildListConversationsResponse(result));
+	}
+	catch (err) {
+		return next(err);
+	}
+}
+
+module.exports = {
+	createMessageByUser,
+	listMessagesByUser,
+	markConversationReadByUser,
+	listConversations
+};
+
+===== FILE: dm/src/services/dm.service.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const dmRepository = require('../repositories/dm.repository');
+const realtimeClient = require('../clients/realtime.client');
+// const userClient = require('../clients/user.client');
+// const socialClient = require('../clients/social.client');
+
+function logSideEffectFailure(operation, err, details) {
+	console.error('[dm] side effect failed', {
+		operation: operation,
+		code: err && err.code,
+		message: err && err.message,
+		details: details
+	});
+}
+
+async function runBestEffort(operation, details, fn) {
+	try {
+		await fn();
+	}
+	catch (err) {
+		logSideEffectFailure(operation, err, details);
+	}
+}
+
+function assertDifferentUsers(senderId, otherUserId) {
+	if (senderId === otherUserId) {
+		throw new AppError(
+			ERROR_CODES.FORBIDDEN,
+			'cannot use DM endpoints with yourself'
+		);
+	}
+}
+
+async function validateCreateMessageDependencies(command) {
+	// TODO :Réactiver ces vérifications quand les services user/social
+	// seront disponibles sur cette branche.
+	//
+	// await userClient.ensureUserExists(command.otherUserId);
+	// await socialClient.ensureUsersAreFriends(
+	// 	command.senderId,
+	// 	command.otherUserId
+	// );
+}
+
+async function createMessage(command) {
+	let result;
+
+	assertDifferentUsers(command.senderId, command.otherUserId);
+	await validateCreateMessageDependencies(command);
+	result = await dmRepository.createMessage({
+		senderId: command.senderId,
+		otherUserId: command.otherUserId,
+		content: command.content,
+		clientMessageId: command.clientMessageId
+	});
+	if (result.created) {
+		await runBestEffort(
+			'pushDmMessage',
+			{
+				targetUserId: result.message.otherUserId,
+				messageId: result.message.messageId
+			},
+			() => realtimeClient.pushDmMessage(result.message)
+		);
+	}
+	return result.message;
+}
+
+async function listMessages(command) {
+	let result;
+
+	assertDifferentUsers(command.senderId, command.otherUserId);
+	result = await dmRepository.listMessages({
+		senderId: command.senderId,
+		otherUserId: command.otherUserId,
+		limit: command.limit,
+		beforeMessageId: command.beforeMessageId
+	});
+	if (result.error === 'before_message_not_found') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'beforeMessageId not found in this conversation'
+		);
+	}
+	return result;
+}
+
+async function markConversationRead(command) {
+	let result;
+
+	assertDifferentUsers(command.senderId, command.otherUserId);
+	result = await dmRepository.markConversationRead({
+		senderId: command.senderId,
+		otherUserId: command.otherUserId,
+		messageId: command.messageId
+	});
+	if (result.error === 'conversation_not_found') {
+		throw new AppError(
+			ERROR_CODES.NOT_FOUND,
+			'conversation not found'
+		);
+	}
+	if (result.error === 'message_not_found') {
+		throw new AppError(
+			ERROR_CODES.NOT_FOUND,
+			'message not found in this conversation'
+		);
+	}
+	return result;
+}
+
+async function listConversations(command) {
+	return dmRepository.listConversations({
+		senderId: command.senderId,
+		limit: command.limit,
+		cursor: command.cursor
+	});
+}
+
+module.exports = {
+	createMessage,
+	listMessages,
+	markConversationRead,
+	listConversations
+};
+
+===== FILE: dm/src/repositories/dm.repository.js =====
+const prisma = require('../db/prisma');
+
+function orderUsers(senderId, otherUserId) {
+	if (senderId < otherUserId) {
+		return {
+			userLowId: senderId,
+			userHighId: otherUserId
+		};
+	}
+	return {
+		userLowId: otherUserId,
+		userHighId: senderId
+	};
+}
+
+function getOtherUserId(users, senderId) {
+	if (senderId === users.userLowId)
+		return users.userHighId;
+	return users.userLowId;
+}
+
+function buildSenderReadUpdate(senderId, users, messageId) {
+	if (senderId === users.userLowId) {
+		return {
+			lastReadLowMessageId: messageId
+		};
+	}
+	return {
+		lastReadHighMessageId: messageId
+	};
+}
+
+function getSenderReadMessageId(conversation, senderId) {
+	if (senderId === conversation.userLowId)
+		return conversation.lastReadLowMessageId;
+	return conversation.lastReadHighMessageId;
+}
+
+function mapMessage(message, users, senderId) {
+	return {
+		messageId: message.id,
+		otherUserId: getOtherUserId(users, senderId),
+		senderId: message.authorId,
+		content: message.content,
+		clientMessageId: message.clientMessageId,
+		createdAt: message.createdAt
+	};
+}
+
+async function buildUnreadCount(conversation, senderId, lastReadMessageId) {
+	const where = {
+		conversationId: conversation.id,
+		authorId: {
+			not: senderId
+		}
+	};
+
+	if (lastReadMessageId) {
+		where.id = {
+			gt: lastReadMessageId
+		};
+	}
+	return prisma.message.count({
+		where: where
+	});
+}
+
+async function mapConversation(conversation, senderId) {
+	const lastMessage = conversation.messages[0] || null;
+	const users = {
+		userLowId: conversation.userLowId,
+		userHighId: conversation.userHighId
+	};
+	const lastReadMessageId = getSenderReadMessageId(conversation, senderId);
+	const unreadCount = await buildUnreadCount(
+		conversation,
+		senderId,
+		lastReadMessageId
+	);
+
+	return {
+		otherUserId: getOtherUserId(users, senderId),
+		lastReadMessageId: lastReadMessageId,
+		unreadCount: unreadCount,
+		lastMessage: lastMessage
+			? mapMessage(lastMessage, users, senderId)
+			: null
+	};
+}
+
+function isUniqueConstraintError(err) {
+	return err && err.code === 'P2002';
+}
+
+function buildCreateMessageResult(message, users, senderId, created) {
+	return {
+		created: created,
+		message: mapMessage(message, users, senderId)
+	};
+}
+
+async function findConversationByUsers(users) {
+	return prisma.conversation.findUnique({
+		where: {
+			userLowId_userHighId: {
+				userLowId: users.userLowId,
+				userHighId: users.userHighId
+			}
+		}
+	});
+}
+
+async function findExistingMessage(data, users) {
+	return prisma.message.findFirst({
+		where: {
+			authorId: data.senderId,
+			clientMessageId: data.clientMessageId,
+			conversation: {
+				userLowId: users.userLowId,
+				userHighId: users.userHighId
+			}
+		}
+	});
+}
+
+async function createMessageInTransaction(data, users) {
+	return prisma.$transaction(async (tx) => {
+		let conversation;
+		let message;
+
+		conversation = await tx.conversation.upsert({
+			where: {
+				userLowId_userHighId: {
+					userLowId: users.userLowId,
+					userHighId: users.userHighId
+				}
+			},
+			update: {},
+			create: {
+				userLowId: users.userLowId,
+				userHighId: users.userHighId
+			}
+		});
+		message = await tx.message.create({
+			data: {
+				conversationId: conversation.id,
+				authorId: data.senderId,
+				content: data.content,
+				clientMessageId: data.clientMessageId
+			}
+		});
+		await tx.conversation.update({
+			where: {
+				id: conversation.id
+			},
+			data: buildSenderReadUpdate(data.senderId, users, message.id)
+		});
+		return buildCreateMessageResult(message, users, data.senderId, true);
+	});
+}
+
+async function createMessage(data) {
+	const users = orderUsers(data.senderId, data.otherUserId);
+
+	try {
+		return await createMessageInTransaction(data, users);
+	}
+	catch (err) {
+		let message;
+
+		if (!isUniqueConstraintError(err))
+			throw err;
+		message = await findExistingMessage(data, users);
+		if (message)
+			return buildCreateMessageResult(message, users, data.senderId, false);
+		throw err;
+	}
+}
+
+async function listMessages(data) {
+	const users = orderUsers(data.senderId, data.otherUserId);
+	const conversation = await findConversationByUsers(users);
+	let messages;
+	let hasMore;
+	let nextBeforeMessageId;
+
+	if (!conversation) {
+		return {
+			otherUserId: data.otherUserId,
+			messages: [],
+			limit: data.limit,
+			hasMore: false,
+			nextBeforeMessageId: null
+		};
+	}
+	if (data.beforeMessageId) {
+		const beforeMessage = await prisma.message.findFirst({
+			where: {
+				id: data.beforeMessageId,
+				conversationId: conversation.id
+			},
+			select: {
+				id: true
+			}
+		});
+
+		if (!beforeMessage) {
+			return {
+				error: 'before_message_not_found'
+			};
+		}
+	}
+	messages = await prisma.message.findMany({
+		where: {
+			conversationId: conversation.id,
+			...(data.beforeMessageId
+				? {
+					id: {
+						lt: data.beforeMessageId
+					}
+				}
+				: {})
+		},
+		orderBy: {
+			id: 'desc'
+		},
+		take: data.limit + 1
+	});
+	hasMore = messages.length > data.limit;
+	if (hasMore)
+		messages.pop();
+	messages.reverse();
+	nextBeforeMessageId = hasMore && messages.length > 0
+		? messages[0].id
+		: null;
+	return {
+		otherUserId: data.otherUserId,
+		messages: messages.map((message) => {
+			return mapMessage(message, users, data.senderId);
+		}),
+		limit: data.limit,
+		hasMore: hasMore,
+		nextBeforeMessageId: nextBeforeMessageId
+	};
+}
+
+async function markConversationRead(data) {
+	const users = orderUsers(data.senderId, data.otherUserId);
+	const conversation = await findConversationByUsers(users);
+	const currentReadMessageId = conversation
+		? getSenderReadMessageId(conversation, data.senderId)
+		: null;
+	const readUpToMessageId = currentReadMessageId
+		&& currentReadMessageId >= data.messageId
+		? currentReadMessageId
+		: data.messageId;
+
+	if (!conversation) {
+		return {
+			error: 'conversation_not_found'
+		};
+	}
+	const targetMessage = await prisma.message.findFirst({
+		where: {
+			id: data.messageId,
+			conversationId: conversation.id
+		},
+		select: {
+			id: true
+		}
+	});
+
+	if (!targetMessage) {
+		return {
+			error: 'message_not_found'
+		};
+	}
+	if (currentReadMessageId && currentReadMessageId >= targetMessage.id) {
+		return {
+			otherUserId: data.otherUserId,
+			readUpToMessageId: currentReadMessageId
+		};
+	}
+	await prisma.conversation.update({
+		where: {
+			id: conversation.id
+		},
+		data: buildSenderReadUpdate(data.senderId, users, readUpToMessageId)
+	});
+	return {
+		otherUserId: data.otherUserId,
+		readUpToMessageId: readUpToMessageId
+	};
+}
+
+async function listConversations(data) {
+	let conversations;
+	let mapped;
+	let filtered;
+	let paged;
+	let hasMore;
+	let nextCursor;
+
+	conversations = await prisma.conversation.findMany({
+		where: {
+			OR: [
+				{
+					userLowId: data.senderId
+				},
+				{
+					userHighId: data.senderId
+				}
+			]
+		},
+		include: {
+			messages: {
+				orderBy: {
+					id: 'desc'
+				},
+				take: 1
+			}
+		}
+	});
+	mapped = await Promise.all(conversations.map((conversation) => {
+		return mapConversation(conversation, data.senderId);
+	}));
+	mapped.sort((left, right) => {
+		if (!left.lastMessage && !right.lastMessage)
+			return 0;
+		if (!left.lastMessage)
+			return 1;
+		if (!right.lastMessage)
+			return -1;
+		if (left.lastMessage.messageId < right.lastMessage.messageId)
+			return 1;
+		if (left.lastMessage.messageId > right.lastMessage.messageId)
+			return -1;
+		return 0;
+	});
+	filtered = data.cursor
+		? mapped.filter((conversation) => {
+			return conversation.lastMessage
+				&& conversation.lastMessage.messageId < data.cursor;
+		})
+		: mapped;
+	paged = filtered.slice(0, data.limit + 1);
+	hasMore = paged.length > data.limit;
+	if (hasMore)
+		paged.pop();
+	nextCursor = hasMore && paged.length > 0
+		? paged[paged.length - 1].lastMessage.messageId
+		: null;
+	return {
+		conversations: paged,
+		limit: data.limit,
+		hasMore: hasMore,
+		nextCursor: nextCursor
+	};
+}
+
+module.exports = {
+	createMessage,
+	listMessages,
+	markConversationRead,
+	listConversations
+};
+
+===== FILE: dm/src/validation/dm.validation.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+
+function isUuidV7(value) {
+	return /^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
+function normalizeUuid(value) {
+	return value.trim().toLowerCase();
+}
+
+function parsePositiveInteger(value, fieldName) {
+	const parsed = Number(value);
+
+	if (!Number.isInteger(parsed) || parsed <= 0) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a positive integer'
+		);
+	}
+	return parsed;
+}
+
+function validateUuidField(value, fieldName, requiredMessage) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			requiredMessage
+		);
+	}
+	value = normalizeUuid(value);
+	if (!isUuidV7(value)) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			fieldName + ' must be a valid UUIDv7'
+		);
+	}
+	return value;
+}
+
+function validateSenderId(value) {
+	return validateUuidField(value, 'X-User-Id', 'X-User-Id is required');
+}
+
+function validateOtherUserId(value) {
+	return validateUuidField(value, 'otherUserId', 'otherUserId is required');
+}
+
+function validateClientMessageId(value) {
+	return validateUuidField(
+		value,
+		'clientMsgId',
+		'clientMsgId is required'
+	);
+}
+
+function validateMessageId(value) {
+	return validateUuidField(
+		value,
+		'messageId',
+		'messageId is required'
+	);
+}
+
+function validateOptionalBeforeMessageId(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'beforeMessageId',
+		'beforeMessageId is required'
+	);
+}
+
+function validateOptionalCursor(value) {
+	if (value === undefined)
+		return undefined;
+	return validateUuidField(
+		value,
+		'cursor',
+		'cursor is required'
+	);
+}
+
+function validateContent(value) {
+	if (typeof value !== 'string' || value.trim() === '') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'content is required'
+		);
+	}
+	return value;
+}
+
+function validateLimit(value) {
+	if (value === undefined)
+		return 30;
+	value = parsePositiveInteger(value, 'limit');
+	if (value > 100) {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'limit must be less than or equal to 100'
+		);
+	}
+	return value;
+}
+
+function validateCreateMessage(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		otherUserId: validateOtherUserId(command.otherUserId),
+		content: validateContent(command.content),
+		clientMessageId: validateClientMessageId(command.clientMessageId)
+	};
+}
+
+function validateListMessages(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		otherUserId: validateOtherUserId(command.otherUserId),
+		limit: validateLimit(command.limit),
+		beforeMessageId: validateOptionalBeforeMessageId(
+			command.beforeMessageId
+		)
+	};
+}
+
+function validateMarkConversationRead(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		otherUserId: validateOtherUserId(command.otherUserId),
+		messageId: validateMessageId(command.messageId)
+	};
+}
+
+function validateListConversations(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		senderId: validateSenderId(command.senderId),
+		limit: validateLimit(command.limit),
+		cursor: validateOptionalCursor(command.cursor)
+	};
+}
+
+module.exports = {
+	validateCreateMessage,
+	validateListMessages,
+	validateMarkConversationRead,
+	validateListConversations
+};
+
+===== FILE: dm/src/clients/realtime.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+function buildPushPayload(message) {
+	return {
+		userIds: [message.otherUserId],
+		frame: {
+			type: 'dm.message.new',
+			data: {
+				otherUserId: message.senderId,
+				message: {
+					messageId: message.messageId,
+					senderId: message.senderId,
+					content: message.content,
+					clientMsgId: message.clientMessageId,
+					createdAt: message.createdAt
+				}
+			}
+		}
+	};
+}
+
+async function pushDmMessage(message) {
+	let body;
+	let response;
+
+	body = JSON.stringify(buildPushPayload(message));
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.realtime.host,
+			port: env.clients.realtime.port,
+			path: '/internal/push',
+			method: 'POST',
+			agent: agent,
+			headers: {
+				'Content-Type': 'application/json',
+				'Content-Length': Buffer.byteLength(body)
+			},
+			body: body
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'realtime service error',
+			{
+				cause: err,
+				details: {
+					service: 'realtime',
+					operation: 'pushDmMessage',
+					targetUserId: message.otherUserId,
+					messageId: message.messageId
+				}
+			}
+		);
+	}
+	if (response.statusCode < 200 || response.statusCode >= 300) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'realtime service error',
+			{
+				details: {
+					service: 'realtime',
+					operation: 'pushDmMessage',
+					targetUserId: message.otherUserId,
+					messageId: message.messageId,
+					upstreamStatusCode: response.statusCode,
+					responseBody: response.body
+				}
+			}
+		);
+	}
+}
+
+module.exports = {
+	pushDmMessage
+};
+
+===== FILE: dm/src/clients/social.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+async function ensureUsersAreFriends(userId, otherUserId) {
+	let response;
+
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.social.host,
+			port: env.clients.social.port,
+			path: '/friendships/' + userId + '/' + otherUserId,
+			method: 'GET',
+			agent: agent
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'social service error',
+			{
+				cause: err,
+				details: {
+					service: 'social',
+					operation: 'ensureUsersAreFriends',
+					userId: userId,
+					otherUserId: otherUserId
+				}
+			}
+		);
+	}
+	if (response.statusCode === 403) {
+		throw new AppError(
+			ERROR_CODES.FORBIDDEN,
+			'cannot send message to a non-friend user',
+			{
+				details: {
+					service: 'social',
+					operation: 'ensureUsersAreFriends',
+					userId: userId,
+					otherUserId: otherUserId,
+					upstreamStatusCode: response.statusCode
+				}
+			}
+		);
+	}
+	if (response.statusCode < 200 || response.statusCode >= 300) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'social service error',
+			{
+				details: {
+					service: 'social',
+					operation: 'ensureUsersAreFriends',
+					userId: userId,
+					otherUserId: otherUserId,
+					upstreamStatusCode: response.statusCode
+				}
+			}
+		);
+	}
+}
+
+module.exports = {
+	ensureUsersAreFriends
+};
+
+===== FILE: dm/src/clients/user.client.js =====
+const AppError = require('../errors/AppError');
+const ERROR_CODES = require('../errors/errorCodes');
+const env = require('../config/env');
+const agent = require('./https.agent');
+const request = require('./https.request');
+
+async function ensureUserExists(userId) {
+	let response;
+
+	try {
+		response = await request({
+			protocol: 'https:',
+			hostname: env.clients.user.host,
+			port: env.clients.user.port,
+			path: '/users/' + userId,
+			method: 'GET',
+			agent: agent
+		});
+	}
+	catch (err) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'user service error',
+			{
+				cause: err,
+				details: {
+					service: 'user',
+					operation: 'ensureUserExists',
+					targetUserId: userId
+				}
+			}
+		);
+	}
+	if (response.statusCode === 404) {
+		throw new AppError(
+			ERROR_CODES.TARGET_USER_NOT_FOUND,
+			'target user not found',
+			{
+				details: {
+					service: 'user',
+					operation: 'ensureUserExists',
+					targetUserId: userId,
+					upstreamStatusCode: response.statusCode
+				}
+			}
+		);
+	}
+	if (response.statusCode < 200 || response.statusCode >= 300) {
+		throw new AppError(
+			ERROR_CODES.INTERNAL_ERROR,
+			'user service error',
+			{
+				details: {
+					service: 'user',
+					operation: 'ensureUserExists',
+					targetUserId: userId,
+					upstreamStatusCode: response.statusCode
+				}
+			}
+		);
+	}
+}
+
+module.exports = {
+	ensureUserExists
+};
+
+===== FILE: dm/prisma/schema.prisma =====
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Conversation {
+  id                    String    @id @default(uuid(7)) @db.Uuid
+  userLowId             String    @db.Uuid
+  userHighId            String    @db.Uuid
+  createdAt             DateTime  @default(now())
+
+  lastReadLowMessageId  String?   @db.Uuid
+  lastReadHighMessageId String?   @db.Uuid
+
+  messages              Message[] @relation("ConversationMessages")
+  lastReadLowMessage    Message?  @relation("ConversationLastReadLowMessage", fields: [lastReadLowMessageId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+  lastReadHighMessage   Message?  @relation("ConversationLastReadHighMessage", fields: [lastReadHighMessageId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+
+  @@unique([userLowId, userHighId])
+  @@index([userLowId])
+  @@index([userHighId])
+}
+
+model Message {
+  id                         String         @id @default(uuid(7)) @db.Uuid
+  conversationId             String         @db.Uuid
+  authorId                   String         @db.Uuid
+  content                    String
+  clientMessageId            String         @db.Uuid
+  createdAt                  DateTime       @default(now())
+
+  conversation               Conversation   @relation("ConversationMessages", fields: [conversationId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  conversationsAsLastReadLow Conversation[] @relation("ConversationLastReadLowMessage")
+  conversationsAsLastReadHigh Conversation[] @relation("ConversationLastReadHighMessage")
+
+  @@unique([conversationId, authorId, clientMessageId])
+  @@index([conversationId, id])
+}
+
+===== FILE: dm/src/errors/AppError.js =====
+class AppError extends Error {
+	constructor(code, message, options = {}) {
+		if (options.cause)
+			super(message, {cause: options.cause});
+		else
+			super(message);
+		this.name = 'AppError';
+		this.code = code;
+		this.details = options.details;
+		Error.captureStackTrace(this, AppError);
+	}
+}
+
+module.exports = AppError;
+
+===== FILE: dm/src/errors/errorCodes.js =====
+const ERROR_CODES = {
+	INVALID_ARGUMENT: 'INVALID_ARGUMENT',
+	FORBIDDEN: 'FORBIDDEN',
+	TARGET_USER_NOT_FOUND: 'TARGET_USER_NOT_FOUND',
+	NOT_FOUND: 'NOT_FOUND',
+	UNAUTHORIZED_CALLER: 'UNAUTHORIZED_CALLER',
+	INTERNAL_ERROR: 'INTERNAL_ERROR'
+};
+
+module.exports = ERROR_CODES;
+
+===== FILE: dm/src/errors/errorHandler.js =====
+const ERROR_CODES = require('./errorCodes');
+const {logHttpRequestError} = require('../log/logger');
+
+function isJsonParseError(err) {
+	return err && err.type === 'entity.parse.failed';
+}
+
+function getStatusCode(code) {
+	if (code === ERROR_CODES.INVALID_ARGUMENT)
+		return 400;
+	if (code === ERROR_CODES.FORBIDDEN)
+		return 403;
+	if (code === ERROR_CODES.TARGET_USER_NOT_FOUND)
+		return 404;
+	if (code === ERROR_CODES.NOT_FOUND)
+		return 404;
+	if (code === ERROR_CODES.UNAUTHORIZED_CALLER)
+		return 403;
+	return 500;
+}
+
+function getErrorCode(err) {
+	if (isJsonParseError(err))
+		return ERROR_CODES.INVALID_ARGUMENT;
+	if (err && err.code)
+		return err.code;
+	return ERROR_CODES.INTERNAL_ERROR;
+}
+
+function getResponseMessage(err, statusCode) {
+	if (isJsonParseError(err))
+		return 'invalid JSON body';
+	if (statusCode === 500)
+		return 'Internal server error';
+	return err.message;
+}
+
+function errorHandler(err, req, res, next) {
+	const code = getErrorCode(err);
+	const statusCode = getStatusCode(code);
+	const message = getResponseMessage(err, statusCode);
+
+	// On loggue toute l'erreur côté serveur,
+	// mais on garde une réponse API propre côté client.
+	logHttpRequestError(req, err);
+	return res.status(statusCode).json({
+		code: code,
+		message: message
+	});
+}
+
+module.exports = errorHandler;
+

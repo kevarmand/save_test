@@ -3,8 +3,8 @@ const ERROR_CODES = require('../errors/errorCodes');
 const dmClient = require('../clients/dm.client');
 const notificationsClient = require('../clients/notifications.client');
 
-async function dispatch(frameType, userId, command) {
-	if (frameType === 'dm.send') {
+async function dispatch(userId, command) {
+	if (command.type === 'dm.send') {
 		return {
 			type: 'dm.send.ok',
 			data: await dmClient.sendMessage({
@@ -15,7 +15,7 @@ async function dispatch(frameType, userId, command) {
 			})
 		};
 	}
-	if (frameType === 'dm.conversations.list') {
+	if (command.type === 'dm.conversations.list') {
 		return {
 			type: 'dm.conversations.list.ok',
 			data: await dmClient.listConversations({
@@ -25,7 +25,7 @@ async function dispatch(frameType, userId, command) {
 			})
 		};
 	}
-	if (frameType === 'dm.messages.list') {
+	if (command.type === 'dm.messages.list') {
 		return {
 			type: 'dm.messages.list.ok',
 			data: await dmClient.listMessages({
@@ -36,7 +36,7 @@ async function dispatch(frameType, userId, command) {
 			})
 		};
 	}
-	if (frameType === 'dm.read') {
+	if (command.type === 'dm.read') {
 		return {
 			type: 'dm.read.ok',
 			data: await dmClient.markConversationRead({
@@ -46,7 +46,7 @@ async function dispatch(frameType, userId, command) {
 			})
 		};
 	}
-	if (frameType === 'notifications.list') {
+	if (command.type === 'notifications.list') {
 		return {
 			type: 'notifications.list.ok',
 			data: await notificationsClient.listNotifications({
@@ -56,10 +56,19 @@ async function dispatch(frameType, userId, command) {
 			})
 		};
 	}
-	if (frameType === 'notifications.read') {
+	if (command.type === 'notifications.read') {
 		return {
 			type: 'notifications.read.ok',
 			data: await notificationsClient.markNotificationsRead({
+				userId: userId,
+				notificationIds: command.notificationIds
+			})
+		};
+	}
+	if (command.type === 'notifications.delete') {
+		return {
+			type: 'notifications.delete.ok',
+			data: await notificationsClient.deleteNotifications({
 				userId: userId,
 				notificationIds: command.notificationIds
 			})

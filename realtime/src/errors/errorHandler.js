@@ -1,6 +1,10 @@
 const ERROR_CODES = require('./errorCodes');
 const {logHttpRequestError} = require('../log/logger');
 
+function isJsonParseError(err) {
+	return err && err.type === 'entity.parse.failed';
+}
+
 function getStatusCode(code) {
 	if (code === ERROR_CODES.INVALID_ARGUMENT)
 		return 400;
@@ -12,12 +16,16 @@ function getStatusCode(code) {
 }
 
 function getErrorCode(err) {
+	if (isJsonParseError(err))
+		return ERROR_CODES.INVALID_ARGUMENT;
 	if (err && err.code)
 		return err.code;
 	return ERROR_CODES.INTERNAL_ERROR;
 }
 
 function getResponseMessage(err, statusCode) {
+	if (isJsonParseError(err))
+		return 'invalid JSON body';
 	if (statusCode === 500)
 		return 'Internal server error';
 	return err.message;
@@ -28,7 +36,6 @@ function errorHandler(err, req, res, next) {
 	const statusCode = getStatusCode(code);
 	const message = getResponseMessage(err, statusCode);
 
-	// log complet côté serveur, réponse simple côté client.
 	logHttpRequestError(req, err);
 	return res.status(statusCode).json({
 		code: code,

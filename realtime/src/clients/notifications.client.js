@@ -112,7 +112,20 @@ async function markNotificationsRead(command) {
 	});
 }
 
+async function deleteNotifications(command) {
+	return performRequest({
+		operation: 'deleteNotifications',
+		method: 'POST',
+		path: '/notifications/delete',
+		headers: buildHeaders(command.userId, true),
+		body: JSON.stringify({
+			notificationIds: command.notificationIds
+		})
+	});
+}
+
 module.exports = {
 	listNotifications,
-	markNotificationsRead
+	markNotificationsRead,
+	deleteNotifications
 };

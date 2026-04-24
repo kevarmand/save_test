@@ -1,6 +1,6 @@
 const dotenv = require('dotenv');
 
-dotenv.config({ quiet: true });
+dotenv.config({quiet: true});
 
 function requireEnv(name) {
 	const value = process.env[name];
@@ -54,10 +54,6 @@ const env = {
 		realtime: {
 			host: requireEnv('REALTIME_SERVICE_HOST'),
 			port: requireNumberEnv('REALTIME_SERVICE_PORT')
-		},
-		notifications: {
-			host: requireEnv('NOTIFICATIONS_SERVICE_HOST'),
-			port: requireNumberEnv('NOTIFICATIONS_SERVICE_PORT')
 		}
 	}
 };

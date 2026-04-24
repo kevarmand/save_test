@@ -1,12 +1,10 @@
 const express = require('express');
 const {
-	createDmMessageNotification,
-	markDmConversationRead
+	createCommentEvent
 } = require('../controllers/internal.controller');
 
 const router = express.Router();
 
-router.post('/dm/message-created', createDmMessageNotification);
-router.post('/dm/read', markDmConversationRead);
+router.post('/events/comment', createCommentEvent);
 
 module.exports = router;

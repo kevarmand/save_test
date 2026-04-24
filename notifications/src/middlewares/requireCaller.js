@@ -9,12 +9,22 @@ function getCallerCommonName(req) {
 	return certificate.subject.CN;
 }
 
-function requireCaller(expectedCommonName) {
+function normalizeExpectedCommonNames(expectedCommonNames) {
+	if (Array.isArray(expectedCommonNames))
+		return expectedCommonNames;
+	return [expectedCommonNames];
+}
+
+function requireCaller(expectedCommonNames) {
+	const allowedCommonNames = normalizeExpectedCommonNames(
+		expectedCommonNames
+	);
+
 	return (req, res, next) => {
 		const caller = getCallerCommonName(req);
 
 		if (!req.tls || req.tls.authorized !== true
-			|| caller !== expectedCommonName) {
+			|| !allowedCommonNames.includes(caller)) {
 			return next(new AppError(
 				ERROR_CODES.UNAUTHORIZED_CALLER,
 				'unauthorized caller'

@@ -26,27 +26,24 @@ function validateUuidField(value, fieldName, requiredMessage) {
 	return value;
 }
 
-function validateContent(value) {
+function validateCommentAction(value) {
 	if (typeof value !== 'string' || value.trim() === '') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
-			'content is required'
+			'action is required'
+		);
+	}
+	value = value.trim();
+	if (value !== 'created') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'action must be created'
 		);
 	}
 	return value;
 }
 
-function validateCreatedAt(value) {
-	if (typeof value !== 'string' || value.trim() === '') {
-		throw new AppError(
-			ERROR_CODES.INVALID_ARGUMENT,
-			'createdAt is required'
-		);
-	}
-	return value;
-}
-
-function validateCreateDmMessageNotification(command) {
+function validateCreateCommentEvent(command) {
 	if (!command || typeof command !== 'object') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
@@ -54,58 +51,30 @@ function validateCreateDmMessageNotification(command) {
 		);
 	}
 	return {
-		recipientUserId: validateUuidField(
-			command.recipientUserId,
-			'recipientUserId',
-			'recipientUserId is required'
+		action: validateCommentAction(command.action),
+		commentId: validateUuidField(
+			command.commentId,
+			'commentId',
+			'commentId is required'
 		),
-		senderUserId: validateUuidField(
-			command.senderUserId,
-			'senderUserId',
-			'senderUserId is required'
+		postId: validateUuidField(
+			command.postId,
+			'postId',
+			'postId is required'
 		),
-		messageId: validateUuidField(
-			command.messageId,
-			'messageId',
-			'messageId is required'
+		postOwnerId: validateUuidField(
+			command.postOwnerId,
+			'postOwnerId',
+			'postOwnerId is required'
 		),
-		content: validateContent(command.content),
-		clientMessageId: validateUuidField(
-			command.clientMessageId,
-			'clientMsgId',
-			'clientMsgId is required'
-		),
-		createdAt: validateCreatedAt(command.createdAt)
-	};
-}
-
-function validateMarkDmConversationRead(command) {
-	if (!command || typeof command !== 'object') {
-		throw new AppError(
-			ERROR_CODES.INVALID_ARGUMENT,
-			'input is required'
-		);
-	}
-	return {
-		readerUserId: validateUuidField(
-			command.readerUserId,
-			'readerUserId',
-			'readerUserId is required'
-		),
-		otherUserId: validateUuidField(
-			command.otherUserId,
-			'otherUserId',
-			'otherUserId is required'
-		),
-		readUpToMessageId: validateUuidField(
-			command.readUpToMessageId,
-			'readUpToMessageId',
-			'readUpToMessageId is required'
+		actorUserId: validateUuidField(
+			command.actorUserId,
+			'actorUserId',
+			'actorUserId is required'
 		)
 	};
 }
 
 module.exports = {
-	validateCreateDmMessageNotification,
-	validateMarkDmConversationRead
+	validateCreateCommentEvent
 };

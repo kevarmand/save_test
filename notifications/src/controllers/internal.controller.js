@@ -1,51 +1,28 @@
 const {
-	validateCreateDmMessageNotification,
-	validateMarkDmConversationRead
+	validateCreateCommentEvent
 } = require('../validation/internal.validation');
 const notificationsService = require('../services/notifications.service');
 
-function buildCreateDmMessageNotificationCommand(req) {
+function buildCreateCommentEventCommand(req) {
 	return {
-		recipientUserId: req.body.recipientUserId,
-		senderUserId: req.body.senderUserId,
-		messageId: req.body.messageId,
-		content: req.body.content,
-		clientMessageId: req.body.clientMsgId,
-		createdAt: req.body.createdAt
+		action: req.body.action,
+		commentId: req.body.commentId,
+		postId: req.body.postId,
+		postOwnerId: req.body.postOwnerId,
+		actorUserId: req.body.actorUserId
 	};
 }
 
-function buildMarkDmConversationReadCommand(req) {
-	return {
-		readerUserId: req.body.readerUserId,
-		otherUserId: req.body.otherUserId,
-		readUpToMessageId: req.body.readUpToMessageId
-	};
-}
-
-function mapNotificationResponse(notification) {
-	return {
-		notificationId: notification.notificationId,
-		type: notification.type,
-		actorUserId: notification.actorUserId,
-		readAt: notification.readAt,
-		createdAt: notification.createdAt,
-		payload: notification.payload
-	};
-}
-
-async function createDmMessageNotification(req, res, next) {
+async function createCommentEvent(req, res, next) {
 	let command;
-	let result;
 
 	try {
-		command = validateCreateDmMessageNotification(
-			buildCreateDmMessageNotificationCommand(req)
+		command = validateCreateCommentEvent(
+			buildCreateCommentEventCommand(req)
 		);
-		result = await notificationsService.createDmMessageNotification(command);
-		return res.status(result.created ? 201 : 200).json({
-			created: result.created,
-			notification: mapNotificationResponse(result.notification)
+		await notificationsService.createCommentNotification(command);
+		return res.status(202).json({
+			status: 'accepted'
 		});
 	}
 	catch (err) {
@@ -53,23 +30,6 @@ async function createDmMessageNotification(req, res, next) {
 	}
 }
 
-async function markDmConversationRead(req, res, next) {
-	let command;
-	let result;
-
-	try {
-		command = validateMarkDmConversationRead(
-			buildMarkDmConversationReadCommand(req)
-		);
-		result = await notificationsService.markDmConversationRead(command);
-		return res.status(200).json(result);
-	}
-	catch (err) {
-		return next(err);
-	}
-}
-
 module.exports = {
-	createDmMessageNotification,
-	markDmConversationRead
+	createCommentEvent
 };

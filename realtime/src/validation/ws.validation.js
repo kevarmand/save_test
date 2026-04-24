@@ -67,16 +67,6 @@ function validateOptionalCursor(value) {
 	);
 }
 
-function validateOptionalNotificationCursor(value) {
-	if (value === undefined)
-		return undefined;
-	return validateUuidField(
-		value,
-		'cursor',
-		'cursor is required'
-	);
-}
-
 function validateOptionalMessageId(value, fieldName) {
 	if (value === undefined)
 		return undefined;
@@ -134,12 +124,14 @@ function validateAuthFrame(frame) {
 		);
 	}
 	return {
+		type: 'auth',
 		token: frame.token
 	};
 }
 
 function validateDmSendFrame(frame) {
 	return {
+		type: 'dm.send',
 		requestId: validateOptionalRequestId(frame.requestId),
 		otherUserId: validateUuidField(
 			frame.otherUserId,
@@ -157,6 +149,7 @@ function validateDmSendFrame(frame) {
 
 function validateDmConversationsListFrame(frame) {
 	return {
+		type: 'dm.conversations.list',
 		requestId: validateOptionalRequestId(frame.requestId),
 		limit: validateOptionalLimit(frame.limit),
 		cursor: validateOptionalCursor(frame.cursor)
@@ -165,6 +158,7 @@ function validateDmConversationsListFrame(frame) {
 
 function validateDmMessagesListFrame(frame) {
 	return {
+		type: 'dm.messages.list',
 		requestId: validateOptionalRequestId(frame.requestId),
 		otherUserId: validateUuidField(
 			frame.otherUserId,
@@ -181,6 +175,7 @@ function validateDmMessagesListFrame(frame) {
 
 function validateDmReadFrame(frame) {
 	return {
+		type: 'dm.read',
 		requestId: validateOptionalRequestId(frame.requestId),
 		otherUserId: validateUuidField(
 			frame.otherUserId,
@@ -197,14 +192,27 @@ function validateDmReadFrame(frame) {
 
 function validateNotificationsListFrame(frame) {
 	return {
+		type: 'notifications.list',
 		requestId: validateOptionalRequestId(frame.requestId),
 		limit: validateOptionalLimit(frame.limit),
-		cursor: validateOptionalNotificationCursor(frame.cursor)
+		cursor: validateOptionalCursor(frame.cursor)
 	};
 }
 
 function validateNotificationsReadFrame(frame) {
 	return {
+		type: 'notifications.read',
+		requestId: validateOptionalRequestId(frame.requestId),
+		notificationIds: validateUuidArray(
+			frame.notificationIds,
+			'notificationIds'
+		)
+	};
+}
+
+function validateNotificationsDeleteFrame(frame) {
+	return {
+		type: 'notifications.delete',
 		requestId: validateOptionalRequestId(frame.requestId),
 		notificationIds: validateUuidArray(
 			frame.notificationIds,
@@ -226,6 +234,8 @@ function validateAuthenticatedFrame(frame) {
 		return validateNotificationsListFrame(frame);
 	if (frame.type === 'notifications.read')
 		return validateNotificationsReadFrame(frame);
+	if (frame.type === 'notifications.delete')
+		return validateNotificationsDeleteFrame(frame);
 	throw new AppError(ERROR_CODES.INVALID_ARGUMENT, 'unknown frame type');
 }
 

@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM docker.io/library/node:24-alpine
 
 RUN npm install -g wscat && apk add --no-cache expect
 

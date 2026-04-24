@@ -2,14 +2,29 @@ const AppError = require('../errors/AppError');
 const ERROR_CODES = require('../errors/errorCodes');
 const dmRepository = require('../repositories/dm.repository');
 const realtimeClient = require('../clients/realtime.client');
-const notificationsClient = require('../clients/notifications.client');
 // const userClient = require('../clients/user.client');
 // const socialClient = require('../clients/social.client');
 
-function assertDifferentUsers(senderId, otherUserId)
-{
-	if (senderId === otherUserId)
-	{
+function logSideEffectFailure(operation, err, details) {
+	console.error('[dm] side effect failed', {
+		operation: operation,
+		code: err && err.code,
+		message: err && err.message,
+		details: details
+	});
+}
+
+async function runBestEffort(operation, details, fn) {
+	try {
+		await fn();
+	}
+	catch (err) {
+		logSideEffectFailure(operation, err, details);
+	}
+}
+
+function assertDifferentUsers(senderId, otherUserId) {
+	if (senderId === otherUserId) {
 		throw new AppError(
 			ERROR_CODES.FORBIDDEN,
 			'cannot use DM endpoints with yourself'
@@ -17,9 +32,8 @@ function assertDifferentUsers(senderId, otherUserId)
 	}
 }
 
-async function validateCreateMessageDependencies(command)
-{
-	// Réactiver ces vérifications quand les services user/social
+async function validateCreateMessageDependencies(command) {
+	// TODO :Réactiver ces vérifications quand les services user/social
 	// seront disponibles sur cette branche.
 	//
 	// await userClient.ensureUserExists(command.otherUserId);
@@ -29,8 +43,7 @@ async function validateCreateMessageDependencies(command)
 	// );
 }
 
-async function createMessage(command)
-{
+async function createMessage(command) {
 	let result;
 
 	assertDifferentUsers(command.senderId, command.otherUserId);
@@ -41,16 +54,20 @@ async function createMessage(command)
 		content: command.content,
 		clientMessageId: command.clientMessageId
 	});
-	if (result.created)
-	{
-		await realtimeClient.pushDmMessage(result.message);
-		await notificationsClient.createDmMessageNotification(result.message);
+	if (result.created) {
+		await runBestEffort(
+			'pushDmMessage',
+			{
+				targetUserId: result.message.otherUserId,
+				messageId: result.message.messageId
+			},
+			() => realtimeClient.pushDmMessage(result.message)
+		);
 	}
 	return result.message;
 }
 
-async function listMessages(command)
-{
+async function listMessages(command) {
 	let result;
 
 	assertDifferentUsers(command.senderId, command.otherUserId);
@@ -60,8 +77,7 @@ async function listMessages(command)
 		limit: command.limit,
 		beforeMessageId: command.beforeMessageId
 	});
-	if (result.error === 'before_message_not_found')
-	{
+	if (result.error === 'before_message_not_found') {
 		throw new AppError(
 			ERROR_CODES.INVALID_ARGUMENT,
 			'beforeMessageId not found in this conversation'
@@ -70,8 +86,7 @@ async function listMessages(command)
 	return result;
 }
 
-async function markConversationRead(command)
-{
+async function markConversationRead(command) {
 	let result;
 
 	assertDifferentUsers(command.senderId, command.otherUserId);
@@ -80,30 +95,22 @@ async function markConversationRead(command)
 		otherUserId: command.otherUserId,
 		messageId: command.messageId
 	});
-	if (result.error === 'conversation_not_found')
-	{
+	if (result.error === 'conversation_not_found') {
 		throw new AppError(
 			ERROR_CODES.NOT_FOUND,
 			'conversation not found'
 		);
 	}
-	if (result.error === 'message_not_found')
-	{
+	if (result.error === 'message_not_found') {
 		throw new AppError(
 			ERROR_CODES.NOT_FOUND,
 			'message not found in this conversation'
 		);
 	}
-	await notificationsClient.markDmConversationRead({
-		senderId: command.senderId,
-		otherUserId: result.otherUserId,
-		readUpToMessageId: result.readUpToMessageId
-	});
 	return result;
 }
 
-async function listConversations(command)
-{
+async function listConversations(command) {
 	return dmRepository.listConversations({
 		senderId: command.senderId,
 		limit: command.limit,

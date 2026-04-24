@@ -20,7 +20,8 @@ function buildClientTlsOptions() {
 		cert: readFile(env.tls.certPath),
 		key: readFile(env.tls.keyPath),
 		ca: readFile(env.tls.caPath),
-		rejectUnauthorized: true
+		rejectUnauthorized: true,
+		keepAlive: on
 	};
 }
 

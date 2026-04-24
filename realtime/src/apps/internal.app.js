@@ -9,8 +9,8 @@ function createInternalApp() {
 	const app = express();
 
 	app.use(httpLogger);
-	app.use(express.json());
 	app.use(requireInternalClientAuth);
+	app.use(express.json());
 	app.use('/internal', internalRoutes);
 	app.use(notFound);
 	app.use(errorHandler);

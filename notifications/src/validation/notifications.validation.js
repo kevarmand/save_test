@@ -108,7 +108,21 @@ function validateMarkNotificationsRead(command) {
 	};
 }
 
+function validateDeleteNotifications(command) {
+	if (!command || typeof command !== 'object') {
+		throw new AppError(
+			ERROR_CODES.INVALID_ARGUMENT,
+			'input is required'
+		);
+	}
+	return {
+		userId: validateUserId(command.userId),
+		notificationIds: validateNotificationIds(command.notificationIds)
+	};
+}
+
 module.exports = {
 	validateListNotifications,
-	validateMarkNotificationsRead
+	validateMarkNotificationsRead,
+	validateDeleteNotifications
 };
