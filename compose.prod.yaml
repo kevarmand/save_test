@@ -1,0 +1,13 @@
+services:
+  gateway:
+    ports:
+      - "${GATEWAY_PUBLIC_BIND:?missing}:${GATEWAY_PUBLIC_PORT:?missing}:443"
+
+  realtime:
+    command: npm start
+
+  dm:
+    command: npm start
+
+  notifications:
+    command: npm start

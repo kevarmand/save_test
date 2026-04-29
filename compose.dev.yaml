@@ -1,0 +1,71 @@
+services:
+  gateway:
+    ports:
+      - "${GATEWAY_PUBLIC_BIND:?missing}:${GATEWAY_PUBLIC_PORT:?missing}:443"
+
+  realtime:
+    volumes:
+      - ./realtime:/app
+      - realtime_node_modules:/app/node_modules
+      - ./.pki/realtime:/app/certs:ro
+    command: sh -c "npm install && npm run dev"
+
+  dm:
+    volumes:
+      - ./dm:/app
+      - dm_node_modules:/app/node_modules
+      - ./.pki/dm:/app/certs:ro
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+
+  notifications:
+    volumes:
+      - ./notifications:/app
+      - notifications_node_modules:/app/node_modules
+      - ./.pki/notifications:/app/certs:ro
+    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+
+  ws-test:
+    container_name: ws-test
+    image: node:20-alpine
+    depends_on:
+      - gateway
+    working_dir: /work
+    environment:
+      ENV: /work/.shrc
+      WS_URL: wss://gateway/ws
+      WS_CA_PATH: /certs/ca.crt
+      WS_TOKEN_SECRET_FILE: /run/secrets/ws_token_secret
+      WS_TEST_USER_ID: ${WS_TEST_USER_ID:?missing}
+      WS_TEST_USER_A_ID: ${WS_TEST_USER_A_ID:?missing}
+      WS_TEST_USER_B_ID: ${WS_TEST_USER_B_ID:?missing}
+      WS_TEST_USER_C_ID: ${WS_TEST_USER_C_ID:?missing}
+      WS_TOKEN_TTL_SECONDS: ${WS_TOKEN_TTL_SECONDS:?missing}
+      WS_REQUEST_TIMEOUT_MS: ${WS_REQUEST_TIMEOUT_MS:?missing}
+    secrets:
+      - ws_token_secret
+    volumes:
+      - ./ws-test:/work
+      - ./.pki/gateway:/certs:ro
+    networks:
+      - edge_net
+    command: sh -c "npm install && npm install -g wscat && tail -f /dev/null"
+
+  debug:
+    image: nicolaka/netshoot:latest
+    command: ["sleep", "infinity"]
+    stdin_open: true
+    tty: true
+    volumes:
+      - ./.pki:/pki:ro
+    networks:
+      - edge_net
+      - internal_net
+      - dm_db_net
+      - notifications_db_net
+    profiles:
+      - debug
+
+volumes:
+  realtime_node_modules:
+  dm_node_modules:
+  notifications_node_modules:

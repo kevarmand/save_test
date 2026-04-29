@@ -1,52 +1,21 @@
-const crypto = require('crypto');
+const {spawnSync} = require('child_process');
 
 function fail(message) {
 	console.error(message);
 	process.exit(1);
 }
 
-function base64UrlJson(value) {
-	return Buffer.from(JSON.stringify(value)).toString('base64url');
-}
-
 function main() {
-	let secret;
-	let userId;
-	let ttlSeconds;
-	let now;
-	let header;
-	let payload;
-	let unsignedToken;
-	let signature;
-	let token;
+	const result = spawnSync('node', ['/work/gen-token.js', ...process.argv.slice(2)], {
+		encoding: 'utf8'
+	});
 
-	secret = process.env.WS_TOKEN_SECRET;
-	userId = process.argv[2] || process.env.WS_TEST_USER_ID;
-	ttlSeconds = Number(process.argv[3] || process.env.WS_TOKEN_TTL_SECONDS || 315360000);
-	if (!secret)
-		fail('Missing WS_TOKEN_SECRET');
-	if (!userId)
-		fail('Missing WS_TEST_USER_ID');
-	if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0)
-		fail('Invalid WS_TOKEN_TTL_SECONDS');
-	now = Math.floor(Date.now() / 1000);
-	header = base64UrlJson({
-		alg: 'HS256',
-		typ: 'JWT'
-	});
-	payload = base64UrlJson({
-		sub: userId,
-		exp: now + ttlSeconds
-	});
-	unsignedToken = header + '.' + payload;
-	signature = crypto
-		.createHmac('sha256', secret)
-		.update(unsignedToken)
-		.digest('base64url');
-	token = unsignedToken + '.' + signature;
+	if (result.status !== 0)
+		fail((result.stderr || result.stdout).trim());
+
 	console.log(JSON.stringify({
 		type: 'auth',
-		token: token
+		token: result.stdout.trim()
 	}));
 }
 

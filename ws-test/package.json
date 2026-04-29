@@ -2,5 +2,14 @@
   "name": "ws-test",
   "version": "1.0.0",
   "private": true,
-  "dependencies": {}
+  "scripts": {
+    "test:ws": "node lib/ws-e2e.js",
+    "test:dm": "node lib/dm-e2e.js",
+    "user:a": "node lib/ws-user.js alice",
+    "user:b": "node lib/ws-user.js bob",
+    "user:c": "node lib/ws-user.js charlie"
+  },
+  "dependencies": {
+    "ws": "^8.18.3"
+  }
 }

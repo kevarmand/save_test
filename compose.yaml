@@ -1,129 +1,132 @@
 services:
-  dm-db:
+  gateway:
+    container_name: gateway
+    image: gateway
     build:
-      context: ./dm-db
-    container_name: dm-db
-    environment:
-      POSTGRES_DB: dm
-      POSTGRES_USER: dm
-      POSTGRES_PASSWORD: change-me-bootstrap-password
-    volumes:
-      - dm_postgres_data:/var/lib/postgresql
-    networks:
-      - dm_net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dm -d dm"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    command:
-      - postgres
-      - -c
-      - ssl=on
-      - -c
-      - ssl_cert_file=/etc/postgres/certs/dm-db.crt
-      - -c
-      - ssl_key_file=/etc/postgres/certs/dm-db.key
-      - -c
-      - ssl_ca_file=/etc/postgres/certs/ca.crt
-      - -c
-      - hba_file=/etc/postgres/pg_hba.conf
-
-  dm:
-    build:
-      context: ./dm
-    container_name: dm-app
+      context: ./gateway
     depends_on:
-      dm-db:
-        condition: service_healthy
-    ports:
-      - "7000:7000"
-    working_dir: /app
-    volumes:
-      - ./dm:/app
-      - dm_node_modules:/app/node_modules
-    environment:
-      SERVICE_NAME: dm
-      HOST: 0.0.0.0
-      PORT: 7000
-
-      SSL_CERT_PATH: /app/certs/dm.crt
-      SSL_KEY_PATH: /app/certs/dm.key
-      SSL_CA_PATH: /app/certs/ca.crt
-
-      USER_SERVICE_HOST: user
-      USER_SERVICE_PORT: 7000
-      SOCIAL_SERVICE_HOST: social
-      SOCIAL_SERVICE_PORT: 7000
-
-      REALTIME_SERVICE_HOST: realtime
-      REALTIME_SERVICE_PORT: 7443
-
-      DATABASE_URL_RUNTIME: postgresql://dm@dm-db:5432/dm
-      DB_SSL_CA_PATH: /app/certs/ca.crt
-      DB_SSL_CERT_PATH: /app/certs/dm.crt
-      DB_SSL_KEY_PATH: /app/certs/dm.key
-
-      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
-
-      PRISMA_DATABASE_URL: postgresql://dm@dm-db:5432/dm?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/dm.p12&sslaccept=strict
+      - realtime
     networks:
-      - dm_net
-    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
+      - edge_net
+      - internal_net
+    volumes:
+      - ./.pki/gateway:/etc/nginx/certs:ro
+    restart: unless-stopped
 
   realtime:
+    container_name: realtime
+    image: realtime
     build:
       context: ./realtime
-    container_name: realtime-app
     working_dir: /app
-    volumes:
-      - ./realtime:/app
-      - realtime_node_modules:/app/node_modules
     environment:
+      NODE_ENV: ${NODE_ENV:?missing}
+
       SERVICE_NAME: realtime
 
       HOST: 0.0.0.0
-      PORT: 7100
+      PORT: "7100"
 
       INTERNAL_HOST: 0.0.0.0
-      INTERNAL_PORT: 7443
+      INTERNAL_PORT: "7443"
       INTERNAL_ALLOWED_CLIENT_CNS: dm,notifications
 
       SSL_CERT_PATH: /app/certs/realtime.crt
       SSL_KEY_PATH: /app/certs/realtime.key
       SSL_CA_PATH: /app/certs/ca.crt
+      NODE_EXTRA_CA_CERTS: /app/certs/ca.crt
 
       DM_SERVICE_HOST: dm
-      DM_SERVICE_PORT: 7000
+      DM_SERVICE_PORT: "7000"
 
       NOTIFICATIONS_SERVICE_HOST: notifications
-      NOTIFICATIONS_SERVICE_PORT: 7000
+      NOTIFICATIONS_SERVICE_PORT: "7000"
 
-      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+      UPSTREAM_REQUEST_TIMEOUT_MS: ${UPSTREAM_REQUEST_TIMEOUT_MS:?missing}
 
       WS_PATH: /ws
-      WS_TOKEN_SECRET: change-me-ws-secret
-      WS_AUTH_TIMEOUT_MS: 5000
-      WS_HEARTBEAT_INTERVAL_MS: 30000
-      WS_MAX_PAYLOAD_BYTES: 65536
+      WS_TOKEN_SECRET_FILE: /run/secrets/ws_token_secret
+      WS_AUTH_TIMEOUT_MS: ${WS_AUTH_TIMEOUT_MS:?missing}
+      WS_HEARTBEAT_INTERVAL_MS: ${WS_HEARTBEAT_INTERVAL_MS:?missing}
+      WS_MAX_PAYLOAD_BYTES: ${WS_MAX_PAYLOAD_BYTES:?missing}
+    secrets:
+      - ws_token_secret
     networks:
-      - dm_net
-    command: sh -c "npm install && npm run dev"
-
-  notifications-db:
-    build:
-      context: ./notifications-db
-    container_name: notifications-db
-    environment:
-      POSTGRES_DB: notifications
-      POSTGRES_USER: notifications
-      POSTGRES_PASSWORD: change-me-bootstrap-password
+      - internal_net
+    expose:
+      - "7100"
+      - "7443"
     volumes:
-      - notifications_postgres_data:/var/lib/postgresql
+      - ./.pki/realtime:/app/certs:ro
+    restart: unless-stopped
+
+  dm:
+    container_name: dm
+    image: dm
+    build:
+      context: ./dm
+    working_dir: /app
+    depends_on:
+      dm-db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:?missing}
+
+      SERVICE_NAME: dm
+
+      HOST: 0.0.0.0
+      PORT: "7000"
+
+      SSL_CERT_PATH: /app/certs/dm.crt
+      SSL_KEY_PATH: /app/certs/dm.key
+      SSL_CA_PATH: /app/certs/ca.crt
+      NODE_EXTRA_CA_CERTS: /app/certs/ca.crt
+
+      USER_SERVICE_HOST: ${USER_SERVICE_HOST:?missing}
+      USER_SERVICE_PORT: ${USER_SERVICE_PORT:?missing}
+
+      SOCIAL_SERVICE_HOST: ${SOCIAL_SERVICE_HOST:?missing}
+      SOCIAL_SERVICE_PORT: ${SOCIAL_SERVICE_PORT:?missing}
+
+      REALTIME_SERVICE_HOST: realtime
+      REALTIME_SERVICE_PORT: "7443"
+
+      DATABASE_URL_RUNTIME: postgresql://${DM_DB_USER:?missing}@dm-db:5432/${DM_DB_NAME:?missing}
+
+      DB_SSL_CA_PATH: /app/certs/ca.crt
+      DB_SSL_CERT_PATH: /app/certs/dm.crt
+      DB_SSL_KEY_PATH: /app/certs/dm.key
+
+      UPSTREAM_REQUEST_TIMEOUT_MS: ${UPSTREAM_REQUEST_TIMEOUT_MS:?missing}
+
+      PRISMA_DATABASE_URL: postgresql://${DM_DB_USER:?missing}@dm-db:5432/${DM_DB_NAME:?missing}?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/dm.p12&sslaccept=strict
     networks:
-      - dm_net
+      - internal_net
+      - dm_db_net
+    expose:
+      - "7000"
+    volumes:
+      - ./.pki/dm:/app/certs:ro
+    restart: unless-stopped
+
+  dm-db:
+    container_name: dm-db
+    image: dm-db
+    build:
+      context: ./dm-db
+    environment:
+      POSTGRES_DB: ${DM_DB_NAME:?missing}
+      POSTGRES_USER: ${DM_DB_USER:?missing}
+      POSTGRES_HOST_AUTH_METHOD: trust
+    networks:
+      - dm_db_net
+    expose:
+      - "5432"
+    volumes:
+      - dm_postgres_data:/var/lib/postgresql
+      - ./.pki/dm-db:/run/postgres-certs:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U notifications -d notifications"]
+      test: ["CMD-SHELL", "pg_isready -U ${DM_DB_USER:?missing} -d ${DM_DB_NAME:?missing}"]
       interval: 5s
       timeout: 3s
       retries: 20
@@ -132,79 +135,114 @@ services:
       - -c
       - ssl=on
       - -c
-      - ssl_cert_file=/etc/postgres/certs/notifications-db.crt
+      - ssl_cert_file=/etc/postgres/certs-runtime/dm-db.crt
       - -c
-      - ssl_key_file=/etc/postgres/certs/notifications-db.key
+      - ssl_key_file=/etc/postgres/certs-runtime/dm-db.key
       - -c
-      - ssl_ca_file=/etc/postgres/certs/ca.crt
+      - ssl_ca_file=/etc/postgres/certs-runtime/ca.crt
       - -c
       - hba_file=/etc/postgres/pg_hba.conf
+    restart: unless-stopped
 
   notifications:
+    container_name: notifications
+    image: notifications
     build:
       context: ./notifications
-    container_name: notifications-app
+    working_dir: /app
     depends_on:
       notifications-db:
         condition: service_healthy
-    ports:
-      - "7200:7000"
-    working_dir: /app
-    volumes:
-      - ./notifications:/app
-      - notifications_node_modules:/app/node_modules
     environment:
+      NODE_ENV: ${NODE_ENV:?missing}
+
       SERVICE_NAME: notifications
+
       HOST: 0.0.0.0
-      PORT: 7000
+      PORT: "7000"
 
       SSL_CERT_PATH: /app/certs/notifications.crt
       SSL_KEY_PATH: /app/certs/notifications.key
       SSL_CA_PATH: /app/certs/ca.crt
+      NODE_EXTRA_CA_CERTS: /app/certs/ca.crt
 
       REALTIME_SERVICE_HOST: realtime
-      REALTIME_SERVICE_PORT: 7443
+      REALTIME_SERVICE_PORT: "7443"
 
-      DATABASE_URL_RUNTIME: postgresql://notifications@notifications-db:5432/notifications
+      DATABASE_URL_RUNTIME: postgresql://${NOTIFICATIONS_DB_USER:?missing}@notifications-db:5432/${NOTIFICATIONS_DB_NAME:?missing}
+
       DB_SSL_CA_PATH: /app/certs/ca.crt
       DB_SSL_CERT_PATH: /app/certs/notifications.crt
       DB_SSL_KEY_PATH: /app/certs/notifications.key
 
-      UPSTREAM_REQUEST_TIMEOUT_MS: 3000
+      UPSTREAM_REQUEST_TIMEOUT_MS: ${UPSTREAM_REQUEST_TIMEOUT_MS:?missing}
       INTERNAL_ALLOWED_CLIENT_CNS: dm
 
-      PRISMA_DATABASE_URL: postgresql://notifications@notifications-db:5432/notifications?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/notifications.p12&sslaccept=strict
+      PRISMA_DATABASE_URL: postgresql://${NOTIFICATIONS_DB_USER:?missing}@notifications-db:5432/${NOTIFICATIONS_DB_NAME:?missing}?schema=public&sslmode=require&sslcert=/app/certs/ca.crt&sslidentity=/app/certs/notifications.p12&sslaccept=strict
     networks:
-      - dm_net
-    command: sh -c "npm install && npx prisma generate && npx prisma db push && npm run dev"
-
-
-  ws-test:
-    image: node:20-alpine
-    container_name: ws-test
-    depends_on:
-      realtime:
-        condition: service_started
-    working_dir: /work
-    environment:
-      ENV: /work/.shrc
-      WS_URL: wss://realtime:7100/ws
-      WS_CA_PATH: /certs/ca.crt
-      WS_TOKEN_SECRET: change-me-ws-secret
-      WS_TEST_USER_ID: 019d3641-b111-7cc2-98c4-dc0c0f4a1111
-      WS_TOKEN_TTL_SECONDS: 315360000
+      - internal_net
+      - notifications_db_net
+    expose:
+      - "7000"
     volumes:
-      - ./ws-test:/work
-      - ./realtime/certs:/certs:ro
+      - ./.pki/notifications:/app/certs:ro
+    restart: unless-stopped
+
+  notifications-db:
+    container_name: notifications-db
+    image: notifications-db
+    build:
+      context: ./notifications-db
+    environment:
+      POSTGRES_DB: ${NOTIFICATIONS_DB_NAME:?missing}
+      POSTGRES_USER: ${NOTIFICATIONS_DB_USER:?missing}
+      POSTGRES_HOST_AUTH_METHOD: trust
     networks:
-      - dm_net
-    command: sh -c "npm install -g wscat && tail -f /dev/null"
+      - notifications_db_net
+    expose:
+      - "5432"
+    volumes:
+      - notifications_postgres_data:/var/lib/postgresql
+      - ./.pki/notifications-db:/run/postgres-certs:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${NOTIFICATIONS_DB_USER:?missing} -d ${NOTIFICATIONS_DB_NAME:?missing}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    command:
+      - postgres
+      - -c
+      - ssl=on
+      - -c
+      - ssl_cert_file=/etc/postgres/certs-runtime/notifications-db.crt
+      - -c
+      - ssl_key_file=/etc/postgres/certs-runtime/notifications-db.key
+      - -c
+      - ssl_ca_file=/etc/postgres/certs-runtime/ca.crt
+      - -c
+      - hba_file=/etc/postgres/pg_hba.conf
+    restart: unless-stopped
 
 volumes:
   dm_postgres_data:
-  dm_node_modules:
-  realtime_node_modules:
+    name: dm_postgres_data
+
   notifications_postgres_data:
-  notifications_node_modules:
+    name: notifications_postgres_data
+
 networks:
-  dm_net:
+  edge_net:
+    driver: bridge
+
+  internal_net:
+    driver: bridge
+
+  dm_db_net:
+    driver: bridge
+
+  notifications_db_net:
+    driver: bridge
+
+secrets:
+  ws_token_secret:
+    file: ./${SECRETS_DIR:?missing}/ws_token_secret

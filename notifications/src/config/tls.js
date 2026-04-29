@@ -21,7 +21,7 @@ function buildClientTlsOptions() {
 		key: readFile(env.tls.keyPath),
 		ca: readFile(env.tls.caPath),
 		rejectUnauthorized: true,
-		keepAlive: on
+		keepAlive: true
 	};
 }
 

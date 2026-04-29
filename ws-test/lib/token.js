@@ -1,11 +1,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
 
-function fail(message) {
-	console.error(message);
-	process.exit(1);
-}
-
 function requireSecret(name) {
 	const file = process.env[name + '_FILE'];
 
@@ -18,26 +13,22 @@ function base64UrlJson(value) {
 	return Buffer.from(JSON.stringify(value)).toString('base64url');
 }
 
-function main() {
+function createToken(userId, ttlSeconds) {
 	let secret;
-	let userId;
-	let ttlSeconds;
 	let now;
 	let header;
 	let payload;
 	let unsignedToken;
 	let signature;
-	let token;
 
 	secret = requireSecret('WS_TOKEN_SECRET');
-	userId = process.argv[2] || process.env.WS_TEST_USER_ID;
-	ttlSeconds = Number(process.argv[3] || process.env.WS_TOKEN_TTL_SECONDS || 315360000);
 	if (!secret)
-		fail('Missing WS_TOKEN_SECRET or WS_TOKEN_SECRET_FILE');
+		throw new Error('Missing WS_TOKEN_SECRET or WS_TOKEN_SECRET_FILE');
 	if (!userId)
-		fail('Missing WS_TEST_USER_ID');
+		throw new Error('Missing userId');
+	ttlSeconds = Number(ttlSeconds || process.env.WS_TOKEN_TTL_SECONDS || 315360000);
 	if (!Number.isInteger(ttlSeconds) || ttlSeconds <= 0)
-		fail('ttlSeconds must be a positive integer');
+		throw new Error('ttlSeconds must be a positive integer');
 	now = Math.floor(Date.now() / 1000);
 	header = base64UrlJson({
 		alg: 'HS256',
@@ -52,8 +43,9 @@ function main() {
 		.createHmac('sha256', secret)
 		.update(unsignedToken)
 		.digest('base64url');
-	token = unsignedToken + '.' + signature;
-	console.log(token);
+	return unsignedToken + '.' + signature;
 }
 
-main();
+module.exports = {
+	createToken
+};

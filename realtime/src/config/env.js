@@ -1,3 +1,4 @@
+const fs = require('fs');
 const dotenv = require('dotenv');
 
 dotenv.config({quiet: true});
@@ -8,6 +9,14 @@ function requireEnv(name) {
 	if (!value)
 		throw new Error('Missing required environment variable: ' + name);
 	return value;
+}
+
+function requireSecretEnv(name) {
+	const file = process.env[name + '_FILE'];
+
+	if (file)
+		return fs.readFileSync(file, 'utf8').trim();
+	return requireEnv(name);
 }
 
 function requireNumberEnv(name) {
@@ -65,7 +74,7 @@ const env = {
 	},
 	ws: {
 		path: requireEnv('WS_PATH'),
-		tokenSecret: requireEnv('WS_TOKEN_SECRET'),
+		tokenSecret: requireSecretEnv('WS_TOKEN_SECRET'),
 		authTimeoutMs: requireNumberEnv('WS_AUTH_TIMEOUT_MS'),
 		heartbeatIntervalMs: requireNumberEnv('WS_HEARTBEAT_INTERVAL_MS'),
 		maxPayloadBytes: requireNumberEnv('WS_MAX_PAYLOAD_BYTES')
